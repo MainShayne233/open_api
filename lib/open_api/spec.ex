@@ -12,4 +12,3 @@ defmodule OpenAPI.Spec do
     field(:paths, [OpenAPI.Spec.Path])
   end
 end
-

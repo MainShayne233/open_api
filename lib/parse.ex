@@ -44,13 +44,37 @@ defmodule OpenAPI.Parse do
     paths
     |> Map.to_list()
     |> OpenAPI.Util.EnumUtil.maybe_map(fn
-      {path_name, _path_body} ->
-        {:ok, %OpenAPI.Spec.Path{name: path_name}}
+      {path_name, path_body} ->
+        with {:ok, path_actions} <- parse_path_actions(path_body) do
+          %OpenAPI.Spec.Path{name: path_name, actions: path_actions}
+          |> return()
+        end
 
       _other ->
-        :error
+        {:error, :missing_paths}
     end)
   end
+
+  @spec parse_path_actions(map()) :: {:ok, [OpenAPI.Spec.Action.t()]} | {:error, :missing_actions}
+  defp parse_path_actions(%{} = path_body) do
+    path_body
+    |> Map.to_list()
+    |> OpenAPI.Util.EnumUtil.maybe_map(fn
+      {action_type, _action_body} ->
+        with {:ok, parsed_action_type} <- parse_action_type(action_type) do
+          %OpenAPI.Spec.Action{type: parsed_action_type}
+          |> return()
+        end
+
+      _other ->
+        {:error, :missing_actions}
+    end)
+  end
+
+  @spec parse_action_type(String.t()) ::
+          {:ok, OpenAPI.Spec.Action.action_type()} | {:error, :missing_action_type}
+  defp parse_action_type("post"), do: {:ok, :post}
+  defp parse_action_type(_other), do: {:error, :missing_action_type}
 
   @spec return(any()) :: {:ok, any()}
   def return(value), do: {:ok, value}

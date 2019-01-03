@@ -16,6 +16,10 @@ defmodule OpenAPI.ParseTest do
       [first_path | _] = spec.paths
 
       assert first_path.name == "/v2/taxes"
+
+      [first_action | _] = first_path.actions
+
+      assert first_action.type == :post
     end
   end
 end
