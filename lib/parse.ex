@@ -9,6 +9,8 @@ defmodule OpenAPI.Parse do
 
   @type spec :: any()
 
+  @type request_body :: OpenAPI.Spec.Content.JSONContent.t()
+
   defguardp(
     is_json_spec_file(maybe_json_spec_file)
     when elem(maybe_json_spec_file, 1) == :json and elem(maybe_json_spec_file, 0) |> is_binary()
@@ -60,15 +62,21 @@ defmodule OpenAPI.Parse do
     path_body
     |> Map.to_list()
     |> OpenAPI.Util.EnumUtil.maybe_map(fn
-      {action_type, _action_body} ->
-        with {:ok, parsed_action_type} <- parse_action_type(action_type) do
-          %OpenAPI.Spec.Action{type: parsed_action_type}
+      {action_type, action_body} ->
+        with {:ok, parsed_action_type} <- parse_action_type(action_type),
+             {:ok, request_body} <- parse_request_body(action_body) do
+          %OpenAPI.Spec.Action{type: parsed_action_type, request_body: request_body}
           |> return()
         end
 
       _other ->
         {:error, :missing_actions}
     end)
+  end
+
+  @spec parse_request_body(map()) :: {:ok, request_body()} | {:error, :missing_request_body}
+  defp parse_request_body(%{"requestBody" => %{"content" => %{"application/json" => %{} = content_body}}}) do
+    {:ok, %OpenAPI.Spec.Content.JSONContent{body: %{}}}
   end
 
   @spec parse_action_type(String.t()) ::

@@ -6,6 +6,6 @@ defmodule OpenAPI.Spec.Path do
 
   typedstruct do
     field(:name, String.t())
-    field(:actions, [OpenAPI.Spec.Action])
+    field(:actions, [OpenAPI.Spec.Actio])
   end
 end

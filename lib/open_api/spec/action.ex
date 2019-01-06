@@ -8,5 +8,6 @@ defmodule OpenAPI.Spec.Action do
 
   typedstruct do
     field(:type, action_type())
+    field(:request_body, OpenAPI.Spec.Content.JSONContent.t())
   end
 end

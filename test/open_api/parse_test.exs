@@ -20,6 +20,8 @@ defmodule OpenAPI.ParseTest do
       [first_action | _] = first_path.actions
 
       assert first_action.type == :post
+
+      assert %OpenAPI.Spec.Content.JSONContent{} = first_action.request_body
     end
   end
 end
