@@ -3,22 +3,27 @@ defmodule OpenAPI do
   Defines the OpenAPI macro to be `use`d in an API module.
   """
 
-  import OpenAPI.Parse, only: [is_spec_file: 1]
+  @type ast :: tuple()
 
-  @type params :: [OpenAPI.Parse.spec_file()]
+  @type raw_schema :: map()
 
-  @spec __using__(params()) :: :ok
-  def __using__(params) do
+  @type params :: [{:schema, raw_schema()}]
+
+  @type result :: {:ok, ast()} | {:error, atom()}
+
+  @spec __using__(raw_schema()) :: result()
+  defmacro __using__(params) do
+    IO.inspect __CALLER__
     generate(params)
   end
 
   @doc """
-  Generates the API for the given spec.
+  Generates the AST to be compiled into the host module
   """
-  @spec generate([{:spec, OpenAPI.Parse.spec_file()}]) :: :ok | no_return
-  def generate([{:spec, spec_file}]) when is_spec_file(spec_file) do
-    with {:ok, %OpenAPI.Spec{} = spec} <- OpenAPI.Parse.parse_spec_file(spec_file) do
-      {:ok, spec}
-    end
+  @spec generate(params()) :: result()
+  def generate(params) do
+    # with {:ok, %OpenAPI.Spec{} = spec} <- OpenAPI.Parse.parse_spec_file(spec_file) do
+    #   {:ok, spec}
+    # end
   end
 end
