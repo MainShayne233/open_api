@@ -17,7 +17,7 @@ defmodule OpenAPI.MixProject do
 
   defp deps do
     [
-      {:jason, "~> 1.1"},
+      {:jason, "~> 1.1", only: [:test]},
       {:typed_struct, "~> 0.1.4"},
       {:mix_test_watch, "~> 0.8", only: :dev, runtime: false}
     ]
