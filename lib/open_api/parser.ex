@@ -22,7 +22,8 @@ defmodule OpenAPI.Parser do
     with {:ok, %Parser{schema: %Schema{} = schema}} <-
            EnumUtil.process_map(%Parser{schema: %Schema{}, raw_schema: raw_schema}, [
              &parse_info/1,
-             &parse_servers/1
+             &parse_servers/1,
+             &parse_paths/1
            ]) do
       {:ok, schema}
     end
@@ -53,6 +54,20 @@ defmodule OpenAPI.Parser do
       schema
       | servers: servers
     }
+
+    {:ok, %Parser{parser | schema: updated_schema}}
+  end
+
+  @spec parse_paths(Parser.t()) :: result()
+  defp parse_paths(%Parser{schema: schema, raw_schema: raw_schema} = parser) do
+    paths =
+      raw_schema
+      |> Map.get("paths", %{})
+      |> Enum.reduce(%{}, fn {path_name, _path_body}, path_mapping ->
+        Map.put(path_mapping, path_name, %Schema.PathItem{})
+      end)
+
+    updated_schema = %Schema{schema | paths: paths}
 
     {:ok, %Parser{parser | schema: updated_schema}}
   end

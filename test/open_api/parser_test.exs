@@ -21,6 +21,11 @@ defmodule OpenAPI.ParserTest do
       assert schema.info.version == "0.0.1"
 
       assert schema.servers |> hd |> Map.get(:url) == "https://api.taxjar.com"
+
+      all_path_names = Map.keys(schema.paths)
+
+      assert "/v2/taxes" in all_path_names
+      assert "/v2/transactions/orders" in all_path_names
     end
   end
 end
