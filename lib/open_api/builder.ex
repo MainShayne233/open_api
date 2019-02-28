@@ -1,6 +1,5 @@
 defmodule OpenAPI.Builder do
-
-  defstruct [:domain, :headers, ]
+  defstruct [:domain, :headers]
 
   defmacro __before_compile__(_env) do
     params = Module.get_attribute(__CALLER__.module, :params)
