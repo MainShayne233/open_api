@@ -29,4 +29,33 @@ defmodule OpenAPI.Util.EnumUtil do
       maybe_map(rest_of_items, fun, [value | acc])
     end
   end
+
+  @type process :: (any() -> any())
+
+  @doc """
+  Takes an initial value and list of processes, and runs the value through
+  each process until either:
+
+    - There are no more process, in which the processed struct is returned
+
+    - A value other than {:ok, any()} is returned, in which the unmatched value is returned early
+
+
+  ## Examples
+
+      iex> OpenAPI.Util.EnumUtil.process_map(0, [&({:ok, &1 + 1}), &({:ok, &1 * 2})])
+      {:ok, 2}
+      iex> OpenAPI.Util.EnumUtil.process_map(0, [&({:ok, &1 + 1}), fn _ -> :oops end, &({:ok, &1 * 2})])
+      :oops
+  """
+  @spec process_map(any(), [process()]) :: {:ok, any()} | any()
+  def process_map(value, []) do
+    {:ok, value}
+  end
+
+  def process_map(value, [next_process | rest]) when is_function(next_process, 1) do
+    with {:ok, next_value} <- next_process.(value) do
+      process_map(next_value, rest)
+    end
+  end
 end
