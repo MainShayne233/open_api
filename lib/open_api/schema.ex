@@ -7,7 +7,7 @@ defmodule OpenAPI.Schema do
     field(:info, Info.t())
     field(:servers, [Server.t()])
 
-    field(:path, %{
+    field(:paths, %{
       required(path_name :: String.t()) => PathItem.t()
     })
   end

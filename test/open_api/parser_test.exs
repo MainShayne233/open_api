@@ -19,6 +19,8 @@ defmodule OpenAPI.ParserTest do
       assert schema.info.title == "defaultTitle"
       assert schema.info.description == "defaultDescription"
       assert schema.info.version == "0.0.1"
+
+      assert schema.servers |> hd |> Map.get(:url) == "https://api.taxjar.com"
     end
   end
 end

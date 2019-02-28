@@ -21,7 +21,8 @@ defmodule OpenAPI.Parser do
   def parse_schema(%{} = raw_schema) do
     with {:ok, %Parser{schema: %Schema{} = schema}} <-
            EnumUtil.process_map(%Parser{schema: %Schema{}, raw_schema: raw_schema}, [
-             &parse_info/1
+             &parse_info/1,
+             &parse_servers/1
            ]) do
       {:ok, schema}
     end
@@ -36,6 +37,21 @@ defmodule OpenAPI.Parser do
           description: get_in(raw_schema, ["info", "description"]),
           version: get_in(raw_schema, ["info", "version"])
         }
+    }
+
+    {:ok, %Parser{parser | schema: updated_schema}}
+  end
+
+  @spec parse_servers(Parser.t()) :: result()
+  defp parse_servers(%Parser{schema: schema, raw_schema: raw_schema} = parser) do
+    servers =
+      raw_schema
+      |> Map.get("servers", [])
+      |> Enum.map(&%Schema.Server{url: Map.get(&1, "url")})
+
+    updated_schema = %Schema{
+      schema
+      | servers: servers
     }
 
     {:ok, %Parser{parser | schema: updated_schema}}
