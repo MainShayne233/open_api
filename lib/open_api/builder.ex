@@ -2,9 +2,9 @@ defmodule OpenAPI.Builder do
 
   defstruct [:domain, :headers, ]
 
-  defmacro __before_compile__(env) do
+  defmacro __before_compile__(_env) do
     params = Module.get_attribute(__CALLER__.module, :params)
-    schema = Keyword.fetch!(params, :schema)
+    _schema = Keyword.fetch!(params, :schema)
 
     quote do
       def cool do
