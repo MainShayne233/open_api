@@ -83,7 +83,7 @@ defmodule OpenAPI.Parser do
     {:ok, %Parser{parser | schema: updated_schema}}
   end
 
-  @spec parse_path_item(raw_path_item :: map()) :: PathItem.t()
+  @spec parse_path_item(raw_path_item :: map()) :: Schema.PathItem.t()
   defp parse_path_item(%{} = raw_path_item) do
     %Schema.PathItem{}
     |> Map.merge(parse_operations(raw_path_item))
@@ -106,8 +106,114 @@ defmodule OpenAPI.Parser do
 
   @spec parse_operation(raw_operation :: map()) :: Schema.Operation.t()
   defp parse_operation(raw_operation) do
+    request_body =
+      with %{} = raw_request_body <- Map.get(raw_operation, "requestBody") do
+        parse_request_body(raw_request_body)
+      end
+
     %Schema.Operation{
-      description: Map.get(raw_operation, "description")
+      description: Map.get(raw_operation, "description"),
+      request_body: request_body
     }
+  end
+
+  @spec parse_request_body(raw_operation :: map()) :: Schema.RequestBody.t()
+  defp parse_request_body(raw_operation) do
+    content =
+      raw_operation
+      |> Map.get("content", %{})
+      |> parse_payload_content()
+
+    %Schema.RequestBody{
+      description: Map.get(raw_operation, "description"),
+      content: content
+    }
+  end
+
+  @spec parse_payload_content(raw_content :: map()) :: %{
+          required(media_type :: String.t()) => Schema.RequestPayload.t()
+        }
+  defp parse_payload_content(%{} = raw_content) do
+    Enum.reduce(raw_content, %{}, fn {media_type, body}, content_mapping ->
+      Map.put(content_mapping, media_type, parse_request_payload(body))
+    end)
+  end
+
+  @spec parse_request_payload(raw_request_payload :: map()) :: Schema.RequestPayload.t()
+  defp parse_request_payload(%{} = raw_request_payload) do
+    schema =
+      raw_request_payload
+      |> Map.get("schema", %{})
+      |> parse_data_schema()
+
+    %Schema.RequestPayload{
+      schema: schema
+    }
+  end
+
+  @spec parse_data_schema(raw_schema :: map()) :: Schema.DataSchema.t()
+  defp parse_data_schema(%{"type" => "object"} = raw_schema) do
+    properties =
+      with %{} = raw_properties <- Map.get(raw_schema, "properties") do
+        parse_properties(raw_properties)
+      end
+
+    %Schema.DataSchema{
+      type: :object,
+      properties: properties
+    }
+  end
+
+  defp parse_data_schema(%{"type" => "array"} = raw_schema) do
+    items =
+      with %{} = raw_items <- Map.get(raw_schema, "items") do
+        parse_data_schema(raw_items)
+      end
+
+    %Schema.DataSchema{
+      type: :array,
+      items: items
+    }
+  end
+
+  defp parse_data_schema(%{"type" => "integer"}) do
+    %Schema.DataSchema{
+      type: :integer
+    }
+  end
+
+  defp parse_data_schema(%{"type" => "float"}) do
+    %Schema.DataSchema{
+      type: :float
+    }
+  end
+
+  defp parse_data_schema(%{"type" => "number"}) do
+    %Schema.DataSchema{
+      type: :number
+    }
+  end
+
+  defp parse_data_schema(%{"type" => "string"}) do
+    %Schema.DataSchema{
+      type: :string
+    }
+  end
+
+  defp parse_data_schema(%{"type" => other}) do
+    raise "Not supporting data schema type: #{other}"
+  end
+
+  defp parse_data_schema(%{}) do
+    nil
+  end
+
+  @spec parse_properties(raw_properties :: map()) :: %{
+          required(property_name :: String.t()) => Schema.DataSchema.t()
+        }
+  defp parse_properties(%{} = raw_properties) do
+    Enum.reduce(raw_properties, %{}, fn {property_name, property_body}, property_mapping ->
+      Map.put(property_mapping, property_name, parse_data_schema(property_body))
+    end)
   end
 end

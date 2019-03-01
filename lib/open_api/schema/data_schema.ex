@@ -9,7 +9,7 @@ defmodule OpenAPI.Schema.DataSchema do
     field(:type, type())
 
     field(:properties, %{
-      required(property_name :: String.t()) => String.t()
+      required(property_name :: String.t()) => DataSchema.t()
     })
 
     field(:items, DataSchema.t())
