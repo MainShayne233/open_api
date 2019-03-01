@@ -5,7 +5,6 @@ defmodule OpenAPI.Parser do
   use TypedStruct
 
   alias OpenAPI.{Parser, Schema}
-  alias OpenAPI.Util.EnumUtil
 
   @type result :: {:ok, Parser.t()} | {:error, atom()}
 
@@ -28,59 +27,51 @@ defmodule OpenAPI.Parser do
   @doc """
   Walks the raw schema and produces a OpenAPI.Schema.t()
   """
-  @spec parse_schema(raw_schema :: map()) :: {:ok, Schema.t()} | {:error, atom()}
+  @spec parse_schema(raw_schema :: map()) :: Schema.t() | no_return()
   def parse_schema(%{} = raw_schema) do
-    with {:ok, %Parser{schema: %Schema{} = schema}} <-
-           EnumUtil.process_map(%Parser{schema: %Schema{}, raw_schema: raw_schema}, [
-             &parse_info/1,
-             &parse_servers/1,
-             &parse_paths/1
-           ]) do
-      {:ok, schema}
-    end
-  end
+    info =
+      with %{} = raw_info <- Map.get(raw_schema, "info") do
+        parse_info(raw_info)
+      end
 
-  @spec parse_info(Parser.t()) :: result()
-  defp parse_info(%Parser{schema: schema, raw_schema: raw_schema} = parser) do
-    updated_schema = %Schema{
-      schema
-      | info: %Schema.Info{
-          title: get_in(raw_schema, ["info", "title"]),
-          description: get_in(raw_schema, ["info", "description"]),
-          version: get_in(raw_schema, ["info", "version"])
-        }
-    }
-
-    {:ok, %Parser{parser | schema: updated_schema}}
-  end
-
-  @spec parse_servers(Parser.t()) :: result()
-  defp parse_servers(%Parser{schema: schema, raw_schema: raw_schema} = parser) do
     servers =
       raw_schema
-      |> Map.get("servers", [])
-      |> Enum.map(&%Schema.Server{url: Map.get(&1, "url")})
+      |> Map.fetch!("servers")
+      |> Enum.map(&parse_server/1)
 
-    updated_schema = %Schema{
-      schema
-      | servers: servers
-    }
-
-    {:ok, %Parser{parser | schema: updated_schema}}
-  end
-
-  @spec parse_paths(Parser.t()) :: result()
-  defp parse_paths(%Parser{schema: schema, raw_schema: raw_schema} = parser) do
     paths =
       raw_schema
-      |> Map.get("paths", %{})
-      |> Enum.reduce(%{}, fn {path_name, raw_path_item}, path_mapping ->
-        Map.put(path_mapping, path_name, parse_path_item(raw_path_item))
-      end)
+      |> Map.fetch!("paths")
+      |> parse_paths()
 
-    updated_schema = %Schema{schema | paths: paths}
+    %OpenAPI.Schema{
+      info: info,
+      servers: servers,
+      paths: paths
+    }
+  end
 
-    {:ok, %Parser{parser | schema: updated_schema}}
+  @spec parse_info(raw_info :: map()) :: Schema.Info.t()
+  defp parse_info(%{} = raw_info) do
+    %Schema.Info{
+      title: Map.get(raw_info, "title"),
+      description: Map.get(raw_info, "description"),
+      version: Map.get(raw_info, "version")
+    }
+  end
+
+  @spec parse_server(raw_server :: map()) :: Schema.Server.t()
+  defp parse_server(%{} = raw_server) do
+    %Schema.Server{url: Map.get(raw_server, "url")}
+  end
+
+  @spec parse_paths(raw_paths :: map()) :: %{
+          required(path_name :: String.t()) => PathItem.t()
+        }
+  defp parse_paths(%{} = raw_paths) do
+    Enum.reduce(raw_paths, %{}, fn {path_name, raw_path_item}, path_mapping ->
+      Map.put(path_mapping, path_name, parse_path_item(raw_path_item))
+    end)
   end
 
   @spec parse_path_item(raw_path_item :: map()) :: Schema.PathItem.t()
