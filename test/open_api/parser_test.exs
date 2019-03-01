@@ -217,24 +217,7 @@ defmodule OpenAPI.ParserTest do
                      post: nil,
                      put: nil,
                      trace: nil
-                   },
-                   "/v2/transactions/orders/00067745-5d8c-41ab-9099-8e2a2b2a362a" =>
-                     %OpenAPI.Schema.PathItem{
-                       delete: nil,
-                       get: %OpenAPI.Schema.Operation{
-                         description: "Auto generated using Swagger Inspector",
-                         parameters: nil,
-                         request_body: nil,
-                         responses: nil
-                       },
-                       head: nil,
-                       options: nil,
-                       parameters: nil,
-                       patch: nil,
-                       post: nil,
-                       put: nil,
-                       trace: nil
-                     }
+                   }
                  },
                  servers: [%OpenAPI.Schema.Server{url: "https://api.taxjar.com"}]
                }

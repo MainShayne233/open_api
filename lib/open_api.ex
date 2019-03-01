@@ -9,6 +9,8 @@ defmodule OpenAPI do
 
   @type params :: [{:schema, raw_schema()}]
 
+  require OpenAPI.Builder
+
   @spec __using__(raw_schema()) :: ast()
   defmacro __using__(params) do
     quote do

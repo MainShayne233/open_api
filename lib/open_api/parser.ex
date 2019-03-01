@@ -8,17 +8,6 @@ defmodule OpenAPI.Parser do
 
   @type result :: {:ok, Parser.t()} | {:error, atom()}
 
-  @operation_types [
-    :get,
-    :put,
-    :post,
-    :delete,
-    :options,
-    :head,
-    :patch,
-    :trace
-  ]
-
   typedstruct do
     field(:raw_schema, map())
     field(:schema, Schema.t())
@@ -66,7 +55,7 @@ defmodule OpenAPI.Parser do
   end
 
   @spec parse_paths(raw_paths :: map()) :: %{
-          required(path_name :: String.t()) => PathItem.t()
+          required(path_name :: String.t()) => Schema.PathItem.t()
         }
   defp parse_paths(%{} = raw_paths) do
     Enum.reduce(raw_paths, %{}, fn {path_name, raw_path_item}, path_mapping ->
@@ -84,7 +73,8 @@ defmodule OpenAPI.Parser do
           required(operation_type :: atom()) => Schema.Operation.t()
         }
   defp parse_operations(%{} = raw_path_item) do
-    Enum.reduce(@operation_types, %{}, fn operation_type, operations_mapping ->
+    Enum.reduce(Schema.PathItem.all_operation_types(), %{}, fn operation_type,
+                                                               operations_mapping ->
       case Map.get(raw_path_item, Atom.to_string(operation_type)) do
         %{} = raw_operation ->
           Map.put(operations_mapping, operation_type, parse_operation(raw_operation))
