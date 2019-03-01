@@ -1,4 +1,4 @@
-defmodule OpenAPI.Schema.Parameters do
+defmodule OpenAPI.Schema.Parameter do
   use TypedStruct
 
   alias OpenAPI.Schema.DataSchema

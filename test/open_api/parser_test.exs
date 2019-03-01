@@ -14,56 +14,231 @@ defmodule OpenAPI.ParserTest do
 
   describe "parse_schema/1" do
     test "should successfully parse the raw_schema", %{raw_schema: raw_schema} do
-      assert {:ok, schema} = Parser.parse_schema(raw_schema)
-
-      assert schema.info.title == "defaultTitle"
-      assert schema.info.description == "defaultDescription"
-      assert schema.info.version == "0.0.1"
-
-      assert schema.servers |> hd |> Map.get(:url) == "https://api.taxjar.com"
-
-      assert %{"/v2/taxes" => taxes_path_item, "/v2/transactions/orders" => orders_path_item} =
-               schema.paths
-
-      assert taxes_path_item.post.description == "Auto generated using Swagger Inspector"
-
-      assert %{} =
-               request_schema =
-               taxes_path_item.post.request_body.content["application/json"].schema
-
-      assert request_schema.type == :object
-
-      assert %{} = properties = request_schema.properties
-
-      assert properties["amount"].type == :integer
-      assert properties["from_city"].type == :string
-      assert properties["from_country"].type == :string
-      assert properties["from_state"].type == :string
-      assert properties["from_street"].type == :string
-      assert properties["from_zip"].type == :string
-      assert properties["shipping"].type == :number
-      assert properties["to_city"].type == :string
-      assert properties["to_country"].type == :string
-      assert properties["to_state"].type == :string
-      assert properties["to_street"].type == :string
-      assert properties["to_zip"].type == :string
-
-      assert properties["nexus_addresses"].type == :array
-      assert properties["nexus_addresses"].items.type == :object
-      assert properties["nexus_addresses"].items.properties["zip"].type == :string
-      assert properties["nexus_addresses"].items.properties["country"].type == :string
-      assert properties["nexus_addresses"].items.properties["city"].type == :string
-      assert properties["nexus_addresses"].items.properties["street"].type == :string
-      assert properties["nexus_addresses"].items.properties["id"].type == :string
-      assert properties["nexus_addresses"].items.properties["state"].type == :string
-
-      assert properties["line_items"].type == :array
-      assert properties["line_items"].items.type == :object
-      assert properties["line_items"].items.properties["product_tax_code"].type == :string
-      assert properties["line_items"].items.properties["quantity"].type == :integer
-      assert properties["line_items"].items.properties["discount"].type == :integer
-      assert properties["line_items"].items.properties["id"].type == :string
-      assert properties["line_items"].items.properties["unit_price"].type == :integer
+      assert Parser.parse_schema(raw_schema) ==
+               {:ok,
+                %OpenAPI.Schema{
+                  info: %OpenAPI.Schema.Info{
+                    description: "defaultDescription",
+                    title: "defaultTitle",
+                    version: "0.0.1"
+                  },
+                  paths: %{
+                    "/v2/taxes" => %OpenAPI.Schema.PathItem{
+                      delete: nil,
+                      get: nil,
+                      head: nil,
+                      options: nil,
+                      parameters: nil,
+                      patch: nil,
+                      post: %OpenAPI.Schema.Operation{
+                        description: "Auto generated using Swagger Inspector",
+                        parameters: nil,
+                        request_body: %OpenAPI.Schema.RequestBody{
+                          content: %{
+                            "application/json" => %OpenAPI.Schema.RequestPayload{
+                              schema: %OpenAPI.Schema.DataSchema{
+                                items: nil,
+                                properties: %{
+                                  "amount" => %OpenAPI.Schema.DataSchema{
+                                    items: nil,
+                                    properties: nil,
+                                    type: :integer
+                                  },
+                                  "from_city" => %OpenAPI.Schema.DataSchema{
+                                    items: nil,
+                                    properties: nil,
+                                    type: :string
+                                  },
+                                  "from_country" => %OpenAPI.Schema.DataSchema{
+                                    items: nil,
+                                    properties: nil,
+                                    type: :string
+                                  },
+                                  "from_state" => %OpenAPI.Schema.DataSchema{
+                                    items: nil,
+                                    properties: nil,
+                                    type: :string
+                                  },
+                                  "from_street" => %OpenAPI.Schema.DataSchema{
+                                    items: nil,
+                                    properties: nil,
+                                    type: :string
+                                  },
+                                  "from_zip" => %OpenAPI.Schema.DataSchema{
+                                    items: nil,
+                                    properties: nil,
+                                    type: :string
+                                  },
+                                  "line_items" => %OpenAPI.Schema.DataSchema{
+                                    items: %OpenAPI.Schema.DataSchema{
+                                      items: nil,
+                                      properties: %{
+                                        "discount" => %OpenAPI.Schema.DataSchema{
+                                          items: nil,
+                                          properties: nil,
+                                          type: :integer
+                                        },
+                                        "id" => %OpenAPI.Schema.DataSchema{
+                                          items: nil,
+                                          properties: nil,
+                                          type: :string
+                                        },
+                                        "product_tax_code" => %OpenAPI.Schema.DataSchema{
+                                          items: nil,
+                                          properties: nil,
+                                          type: :string
+                                        },
+                                        "quantity" => %OpenAPI.Schema.DataSchema{
+                                          items: nil,
+                                          properties: nil,
+                                          type: :integer
+                                        },
+                                        "unit_price" => %OpenAPI.Schema.DataSchema{
+                                          items: nil,
+                                          properties: nil,
+                                          type: :integer
+                                        }
+                                      },
+                                      type: :object
+                                    },
+                                    properties: nil,
+                                    type: :array
+                                  },
+                                  "nexus_addresses" => %OpenAPI.Schema.DataSchema{
+                                    items: %OpenAPI.Schema.DataSchema{
+                                      items: nil,
+                                      properties: %{
+                                        "city" => %OpenAPI.Schema.DataSchema{
+                                          items: nil,
+                                          properties: nil,
+                                          type: :string
+                                        },
+                                        "country" => %OpenAPI.Schema.DataSchema{
+                                          items: nil,
+                                          properties: nil,
+                                          type: :string
+                                        },
+                                        "id" => %OpenAPI.Schema.DataSchema{
+                                          items: nil,
+                                          properties: nil,
+                                          type: :string
+                                        },
+                                        "state" => %OpenAPI.Schema.DataSchema{
+                                          items: nil,
+                                          properties: nil,
+                                          type: :string
+                                        },
+                                        "street" => %OpenAPI.Schema.DataSchema{
+                                          items: nil,
+                                          properties: nil,
+                                          type: :string
+                                        },
+                                        "zip" => %OpenAPI.Schema.DataSchema{
+                                          items: nil,
+                                          properties: nil,
+                                          type: :string
+                                        }
+                                      },
+                                      type: :object
+                                    },
+                                    properties: nil,
+                                    type: :array
+                                  },
+                                  "shipping" => %OpenAPI.Schema.DataSchema{
+                                    items: nil,
+                                    properties: nil,
+                                    type: :number
+                                  },
+                                  "to_city" => %OpenAPI.Schema.DataSchema{
+                                    items: nil,
+                                    properties: nil,
+                                    type: :string
+                                  },
+                                  "to_country" => %OpenAPI.Schema.DataSchema{
+                                    items: nil,
+                                    properties: nil,
+                                    type: :string
+                                  },
+                                  "to_state" => %OpenAPI.Schema.DataSchema{
+                                    items: nil,
+                                    properties: nil,
+                                    type: :string
+                                  },
+                                  "to_street" => %OpenAPI.Schema.DataSchema{
+                                    items: nil,
+                                    properties: nil,
+                                    type: :string
+                                  },
+                                  "to_zip" => %OpenAPI.Schema.DataSchema{
+                                    items: nil,
+                                    properties: nil,
+                                    type: :string
+                                  }
+                                },
+                                type: :object
+                              }
+                            }
+                          },
+                          description: nil
+                        },
+                        responses: nil
+                      },
+                      put: nil,
+                      trace: nil
+                    },
+                    "/v2/transactions/orders" => %OpenAPI.Schema.PathItem{
+                      delete: nil,
+                      get: %OpenAPI.Schema.Operation{
+                        description: "Auto generated using Swagger Inspector",
+                        parameters: [
+                          %OpenAPI.Schema.Parameter{
+                            name: "to_transaction_date",
+                            in: :query,
+                            schema: %OpenAPI.Schema.DataSchema{
+                              type: :string
+                            },
+                            example: "2019%2F02%2F01"
+                          },
+                          %OpenAPI.Schema.Parameter{
+                            name: "from_transaction_date",
+                            in: :query,
+                            schema: %OpenAPI.Schema.DataSchema{
+                              type: :string
+                            },
+                            example: "2019%2F01%2F01"
+                          }
+                        ],
+                        request_body: nil,
+                        responses: nil
+                      },
+                      head: nil,
+                      options: nil,
+                      parameters: nil,
+                      patch: nil,
+                      post: nil,
+                      put: nil,
+                      trace: nil
+                    },
+                    "/v2/transactions/orders/00067745-5d8c-41ab-9099-8e2a2b2a362a" =>
+                      %OpenAPI.Schema.PathItem{
+                        delete: nil,
+                        get: %OpenAPI.Schema.Operation{
+                          description: "Auto generated using Swagger Inspector",
+                          parameters: nil,
+                          request_body: nil,
+                          responses: nil
+                        },
+                        head: nil,
+                        options: nil,
+                        parameters: nil,
+                        patch: nil,
+                        post: nil,
+                        put: nil,
+                        trace: nil
+                      }
+                  },
+                  servers: [%OpenAPI.Schema.Server{url: "https://api.taxjar.com"}]
+                }}
     end
   end
 end

@@ -1,7 +1,7 @@
 defmodule OpenAPI.Schema.PathItem do
   use TypedStruct
 
-  alias OpenAPI.Schema.{Operation, Parameters}
+  alias OpenAPI.Schema.{Operation, Parameter}
 
   typedstruct do
     field(:get, Operation.t())
@@ -12,6 +12,6 @@ defmodule OpenAPI.Schema.PathItem do
     field(:head, Operation.t())
     field(:patch, Operation.t())
     field(:trace, Operation.t())
-    field(:parameters, Parameters.t())
+    field(:parameters, [Parameter.t()])
   end
 end

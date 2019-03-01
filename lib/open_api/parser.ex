@@ -111,11 +111,44 @@ defmodule OpenAPI.Parser do
         parse_request_body(raw_request_body)
       end
 
+    parameters =
+      with raw_parameters when is_list(raw_parameters) <- Map.get(raw_operation, "parameters") do
+        Enum.map(raw_parameters, &parse_parameter/1)
+      end
+
     %Schema.Operation{
       description: Map.get(raw_operation, "description"),
-      request_body: request_body
+      request_body: request_body,
+      parameters: parameters
     }
   end
+
+  @spec parse_parameter(raw_parameter :: map()) :: Schema.Parameter.t()
+  defp parse_parameter(%{} = raw_parameter) do
+    parameter_location =
+      with parameter_location when is_binary(parameter_location) <- Map.get(raw_parameter, "in") do
+        parse_parameter_location(parameter_location)
+      end
+
+    data_schema =
+      with %{} = raw_data_schema <- Map.get(raw_parameter, "schema") do
+        parse_data_schema(raw_data_schema)
+      end
+
+    %Schema.Parameter{
+      name: Map.get(raw_parameter, "name"),
+      example: Map.get(raw_parameter, "example"),
+      in: parameter_location,
+      schema: data_schema
+    }
+  end
+
+  @spec parse_parameter_location(raw_parameter_location :: String.t()) ::
+          OpenAPI.Schema.Parameter.parameter_location()
+  defp parse_parameter_location("query"), do: :query
+  defp parse_parameter_location("header"), do: :header
+  defp parse_parameter_location("path"), do: :path
+  defp parse_parameter_location("cookie"), do: :cookie
 
   @spec parse_request_body(raw_operation :: map()) :: Schema.RequestBody.t()
   defp parse_request_body(raw_operation) do
