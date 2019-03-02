@@ -90,7 +90,9 @@ defmodule OpenAPI.Builder do
            }
          }
        }) do
-    define_typed_struct(parent_module, data_schema)
+    quote do
+      unquote(define_typed_struct(parent_module, data_schema))
+    end
   end
 
   defp define_typed_struct_for_operation(_parent_module, %Schema.Operation{}) do
@@ -112,7 +114,34 @@ defmodule OpenAPI.Builder do
       typedstruct do
         (unquote_splicing(Enum.map(properties, &define_typed_struct_field(parent_module, &1))))
       end
+
+      (unquote_splicing(
+         properties
+         |> Enum.map(&define_nested_structs(parent_module, &1))
+         |> Enum.reject(&is_nil/1)
+       ))
     end
+  end
+
+  @spec define_nested_structs(
+          parent_module :: module(),
+          {field_name :: String.t(), Schema.DataSchema.t()}
+        ) :: OpenAPI.ast()
+  defp define_nested_structs(
+         parent_module,
+         {field_name, %Schema.DataSchema{type: :array, items: %Schema.DataSchema{} = item_schema}}
+       ) do
+    module_name = module_name(parent_module, [field_name, "item"])
+
+    quote do
+      defmodule unquote(module_name) do
+        unquote(define_typed_struct(parent_module, item_schema))
+      end
+    end
+  end
+
+  defp define_nested_structs(_parent_module, _field_key_value) do
+    nil
   end
 
   @spec define_typed_struct_field(
@@ -137,17 +166,28 @@ defmodule OpenAPI.Builder do
          type: :array,
          items: %Schema.DataSchema{} = item_schema
        }) do
+    item_type =
+      case item_schema.type do
+        :object ->
+          quote do
+            unquote(module_name(parent_module, [field_name, "item"])).t()
+          end
+
+        _other ->
+          typed_struct_field_type(parent_module, field_name, item_schema)
+      end
+
     quote do
-      [unquote(typed_struct_field_type(parent_module, field_name, item_schema))]
+      [unquote(item_type)]
     end
   end
 
-  defp typed_struct_field_type(_parent_module, _field_name, %Schema.DataSchema{
+  defp typed_struct_field_type(parent_module, field_name, %Schema.DataSchema{
          type: :object,
          properties: %{} = _properties
        }) do
     quote do
-      map()
+      unquote(module_name(parent_module, [field_name])).t()
     end
   end
 
