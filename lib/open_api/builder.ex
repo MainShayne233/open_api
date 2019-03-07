@@ -95,12 +95,23 @@ defmodule OpenAPI.Builder do
     end
   end
 
-  defp define_typed_struct_for_operation(_parent_module, %Schema.Operation{}) do
+  defp define_typed_struct_for_operation(parent_module, %Schema.Operation{
+         parameters: [_ | _] = parameters
+       }) do
+    data_schema = convert_parameters_to_data_schema(parameters)
+
     quote do
-      def need_to_define do
-        :need_to_define
-      end
+      unquote(define_typed_struct(parent_module, data_schema))
     end
+  end
+
+  @spec convert_parameters_to_data_schema([Schema.Parameter.t()]) :: Schema.DataSchema.t()
+  defp convert_parameters_to_data_schema(parameters) do
+    Enum.reduce(parameters, %Schema.DataSchema{type: :object, properties: %{}}, fn
+      %Schema.Parameter{in: :query, name: name, schema: schema}, data_schema ->
+        updated_properites = Map.put(data_schema.properties, name, schema)
+        %Schema.DataSchema{data_schema | properties: updated_properites}
+    end)
   end
 
   @spec define_typed_struct(parent_module :: module(), Schema.DataSchema.t()) :: OpenAPI.ast()
