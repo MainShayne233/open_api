@@ -2,16 +2,22 @@ defmodule OpenAPITest do
   use ExUnit.Case
 
   setup_all do
-    {:module, api_module, _, _} =
-      defmodule MyAPI do
-      end
+    defmodule MockAPI do
+      use OpenAPI,
+        schema: %{
+          "servers" => [%{"url" => "https://api.mock.com"}],
+          "paths" => %{
+            "/users/index" => %{}
+          }
+        }
+    end
 
-    %{module: api_module}
+    :ok
   end
 
   describe "using/2" do
-    test "should generate the API", %{module: module} do
-      assert module
+    test "should generate the API" do
+      assert Code.ensure_compiled?(__MODULE__.MockAPI.Users.Index)
     end
   end
 end
