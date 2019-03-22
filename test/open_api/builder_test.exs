@@ -15,16 +15,11 @@ defmodule OpenAPI.BuilderTest do
     test "should produce the expected AST", %{schema: schema} do
       assert ast = OpenAPI.Builder.generate_api(schema, MyApp.MyAPI)
 
-      module_string =
-        quote do
-          defmodule(MyApp.MyAPI) do
-            unquote(ast)
-          end
+      quote do
+        defmodule(MyApp.MyAPI) do
+          unquote(ast)
         end
-        |> Macro.to_string()
-        |> Code.format_string!()
-
-      IO.puts(module_string)
+      end
     end
   end
 end
