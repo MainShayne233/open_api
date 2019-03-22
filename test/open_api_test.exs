@@ -1,17 +1,17 @@
 defmodule OpenAPITest do
   use ExUnit.Case
 
-  defmodule(MyAPI) do
-    use OpenAPI,
-      schema:
-        "test/support/schemas/tax_jar.json"
-        |> File.read!()
-        |> Jason.decode!()
+  setup_all do
+    {:module, api_module, _, _} =
+      defmodule MyAPI do
+      end
+
+    %{module: api_module}
   end
 
   describe "using/2" do
-    test "should generate the API" do
-      assert :ok
+    test "should generate the API", %{module: module} do
+      assert module
     end
   end
 end
