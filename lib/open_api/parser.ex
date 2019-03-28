@@ -97,10 +97,16 @@ defmodule OpenAPI.Parser do
         Enum.map(raw_parameters, &parse_parameter/1)
       end
 
+    responses =
+      with %{} = raw_responses <- Map.get(raw_operation, "responses") do
+        parse_responses(raw_responses)
+      end
+
     %Schema.Operation{
       description: Map.get(raw_operation, "description"),
       request_body: request_body,
-      parameters: parameters
+      parameters: parameters,
+      responses: responses
     }
   end
 
@@ -136,7 +142,7 @@ defmodule OpenAPI.Parser do
     content =
       raw_operation
       |> Map.get("content", %{})
-      |> parse_payload_content()
+      |> parse_request_payload_content()
 
     %Schema.RequestBody{
       description: Map.get(raw_operation, "description"),
@@ -144,10 +150,29 @@ defmodule OpenAPI.Parser do
     }
   end
 
-  @spec parse_payload_content(raw_content :: map()) :: %{
+  @spec parse_responses(raw_responses :: map()) :: %{String.t() => Schema.Response.t()}
+  defp parse_responses(%{} = raw_responses) do
+    Enum.reduce(raw_responses, %{}, fn {status_code, response_body}, response_mapping ->
+      Map.put(response_mapping, status_code, parse_response(response_body))
+    end)
+  end
+
+  @spec parse_response(raw_response :: map()) :: Schema.Response.t()
+  defp parse_response(%{} = raw_response) do
+    content =
+      raw_response
+      |> Map.get("content", %{})
+      |> parse_response_payload_content()
+
+    %Schema.Response{
+      content: content
+    }
+  end
+
+  @spec parse_request_payload_content(raw_content :: map()) :: %{
           required(media_type :: String.t()) => Schema.RequestPayload.t()
         }
-  defp parse_payload_content(%{} = raw_content) do
+  defp parse_request_payload_content(%{} = raw_content) do
     Enum.reduce(raw_content, %{}, fn {media_type, body}, content_mapping ->
       Map.put(content_mapping, media_type, parse_request_payload(body))
     end)
@@ -161,6 +186,27 @@ defmodule OpenAPI.Parser do
       |> parse_data_schema()
 
     %Schema.RequestPayload{
+      schema: schema
+    }
+  end
+
+  @spec parse_response_payload_content(raw_content :: map()) :: %{
+          required(media_type :: String.t()) => Schema.ResponsePayload.t()
+        }
+  defp parse_response_payload_content(%{} = raw_content) do
+    Enum.reduce(raw_content, %{}, fn {media_type, body}, content_mapping ->
+      Map.put(content_mapping, media_type, parse_response_payload(body))
+    end)
+  end
+
+  @spec parse_response_payload(raw_response_payload :: map()) :: Schema.ResponsePayload.t()
+  defp parse_response_payload(%{} = raw_response_payload) do
+    schema =
+      raw_response_payload
+      |> Map.get("schema", %{})
+      |> parse_data_schema()
+
+    %Schema.ResponsePayload{
       schema: schema
     }
   end

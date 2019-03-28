@@ -90,6 +90,8 @@ defmodule OpenAPI.Builder do
       unquote(define_operation_client_function(parent_module, operation_type))
       unquote(define_operation_path_function(parent_module, operation_type))
       unquote(define_operation_make_request_function(parent_module, operation_type))
+      unquote(define_operation_handle_response_function(parent_module, operation_type))
+      unquote(define_operation_decode_response_function(parent_module, operation_type))
     end
   end
 
@@ -153,7 +155,41 @@ defmodule OpenAPI.Builder do
     quote do
       @spec make_request(options :: Keyword.t()) :: any()
       def make_request(options \\ []) do
-        apply(Tesla, unquote(operation_type), [client(options), path(options)])
+        Tesla
+        |> apply(unquote(operation_type), [client(options), path(options)])
+        |> handle_response(options)
+      end
+    end
+  end
+
+  @spec define_operation_handle_response_function(
+          parent_module :: module(),
+          Schema.PathItem.operation_type()
+        ) :: OpenAPI.ast()
+  defp define_operation_handle_response_function(_parent_module, _operation_type) do
+    quote do
+      @spec handle_response(Tesla.Env.result()) :: any()
+      defp handle_response(response, options \\ []) do
+        with {:ok, %Tesla.Env{} = response_env} <- response do
+          if Keyword.get(options, :decode_response, true) do
+            decode_response(response_env)
+          else
+            response_env
+          end
+        end
+      end
+    end
+  end
+
+  @spec define_operation_decode_response_function(
+          parent_module :: module(),
+          Schema.PathItem.operation_type()
+        ) :: OpenAPI.ast()
+  defp define_operation_decode_response_function(_parent_module, _operation_type) do
+    quote do
+      @spec decode_response(Tesla.Env.result()) :: any()
+      defp decode_response(%Tesla.Env{body: body}, options \\ []) do
+        {:ok, body}
       end
     end
   end
