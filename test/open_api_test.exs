@@ -4,6 +4,7 @@ defmodule OpenAPITest do
   setup_all do
     defmodule MockAPI do
       use OpenAPI,
+        json_decoder: &Jason.decode/1,
         schema: %{
           "servers" => [%{"url" => "https://api.mock.com"}],
           "paths" => %{
@@ -20,7 +21,7 @@ defmodule OpenAPITest do
                           "type" => "array",
                           "items" => %{
                             "type" => "object",
-                            "proprties" => %{
+                            "properties" => %{
                               "username" => %{"type" => "string"}
                             }
                           }
@@ -38,6 +39,9 @@ defmodule OpenAPITest do
     Tesla.Mock.mock_global(fn
       %Tesla.Env{url: "https://api.mock.com/health_check"} ->
         %Tesla.Env{status: 200, body: "healthy!"}
+
+      %Tesla.Env{url: "https://api.mock.com/users"} ->
+        %Tesla.Env{status: 200, body: "[{\"username\":\"jane\"}]"}
     end)
 
     :ok
@@ -51,6 +55,11 @@ defmodule OpenAPITest do
     test "should generate the /health_check path code" do
       assert {:ok, "healthy!"} =
                __MODULE__.MockAPI.HealthCheck.Get.make_request(tesla_adapter: Tesla.Mock)
+    end
+
+    test "should generate the /users path code" do
+      assert {:ok, [%{username: "jane"}]} =
+               __MODULE__.MockAPI.Users.Get.make_request(tesla_adapter: Tesla.Mock)
     end
   end
 end

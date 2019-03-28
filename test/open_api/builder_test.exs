@@ -11,9 +11,9 @@ defmodule OpenAPI.BuilderTest do
     %{schema: schema}
   end
 
-  describe "generate_api/2" do
+  describe "generate_api/3" do
     test "should produce the expected AST", %{schema: schema} do
-      assert ast = OpenAPI.Builder.generate_api(schema, MyApp.MyAPI)
+      assert ast = OpenAPI.Builder.generate_api(schema, MyApp.MyAPI, &Jason.decode/1)
 
       quote do
         defmodule(MyApp.MyAPI) do

@@ -1,16 +1,20 @@
 defmodule OpenAPI.Builder do
   alias OpenAPI.Schema
 
+  @type json_decoder :: (json :: String.t() -> {:ok, term()} | {:error, term()})
+
   @type t :: %__MODULE__{
           schema: Schema.t(),
           host_module: module(),
-          parent_module: module()
+          parent_module: module(),
+          json_decoder: json_decoder()
         }
 
   defstruct [
     :schema,
     :host_module,
-    :parent_module
+    :parent_module,
+    :json_decoder
   ]
 
   alias OpenAPI.Builder
@@ -20,21 +24,23 @@ defmodule OpenAPI.Builder do
     Module.delete_attribute(__CALLER__.module, :params)
 
     raw_schema = Keyword.fetch!(params, :schema)
+    json_decoder = Keyword.fetch!(params, :json_decoder)
 
     %Schema{} = schema = OpenAPI.Parser.parse_schema(raw_schema)
 
-    generate_api(schema, __CALLER__.module)
+    generate_api(schema, __CALLER__.module, json_decoder)
   end
 
   @doc """
   Generates the AST for the API defined by the schema.
   """
-  @spec generate_api(Schema.t(), parent_module :: module()) :: OpenAPI.ast()
-  def generate_api(%Schema{} = schema, parent_module) do
+  @spec generate_api(Schema.t(), parent_module :: module(), json_decoder()) :: OpenAPI.ast()
+  def generate_api(%Schema{} = schema, parent_module, json_decoder) do
     builder = %Builder{
       schema: schema,
       host_module: parent_module,
-      parent_module: parent_module
+      parent_module: parent_module,
+      json_decoder: json_decoder
     }
 
     quote do
@@ -102,6 +108,10 @@ defmodule OpenAPI.Builder do
             define_request_body_module(%Builder{builder | parent_module: module_name}, operation)
           )
 
+          unquote(
+            define_response_module(%Builder{builder | parent_module: module_name}, operation)
+          )
+
           unquote(define_operation_functions(builder, operation_type))
 
           defdelegate domain, to: unquote(parent_module)
@@ -109,6 +119,135 @@ defmodule OpenAPI.Builder do
         end
       end
     end)
+  end
+
+  @spec define_response_module(Builder.t(), Schema.Operation.t()) :: OpenAPI.ast()
+  defp define_response_module(
+         %Builder{parent_module: parent_module} = builder,
+         %Schema.Operation{} = operation
+       ) do
+    module_name = module_name(parent_module, ["Response"])
+
+    response_status_modules =
+      Enum.map(operation.responses, fn {status_code, response} ->
+        define_response_module(
+          %Builder{builder | parent_module: module_name},
+          status_code,
+          response
+        )
+      end)
+
+    quote do
+      defmodule unquote(module_name) do
+        (unquote_splicing(response_status_modules))
+      end
+    end
+  end
+
+  @spec define_response_module(Builder.t(), status_code :: String.t(), Schema.Response.t()) ::
+          OpenAPI.ast()
+  defp define_response_module(
+         %Builder{parent_module: parent_module} = builder,
+         status_code,
+         %Schema.Response{} = response
+       ) do
+    module_name = module_name(parent_module, ["Status#{status_code}"])
+
+    quote do
+      defmodule unquote(module_name) do
+        unquote(
+          define_typed_struct_for_response(
+            %Builder{builder | parent_module: module_name},
+            response
+          )
+        )
+
+        unquote(
+          define_decode_response_function(
+            %Builder{builder | parent_module: module_name},
+            response
+          )
+        )
+      end
+    end
+  end
+
+  @spec define_typed_struct_for_response(Builder.t(), Schema.Response.t()) :: OpenAPI.ast()
+  defp define_typed_struct_for_response(%Builder{} = builder, %Schema.Response{
+         content: %{
+           "application/json" => %Schema.ResponsePayload{
+             schema: %Schema.DataSchema{} = data_schema
+           }
+         }
+       }) do
+    quote do
+      unquote(define_typed_struct(builder, data_schema))
+    end
+  end
+
+  defp define_typed_struct_for_response(%Builder{} = builder, %Schema.Response{}) do
+    quote do
+      unquote(
+        define_typed_struct(builder, %Schema.DataSchema{
+          type: :object,
+          properties: %{"text" => %Schema.DataSchema{type: :string}}
+        })
+      )
+    end
+  end
+
+  @spec define_decode_response_function(Builder.t(), Schema.Response.t()) :: OpenAPI.ast()
+  defp define_decode_response_function(%Builder{} = builder, %Schema.Response{
+         content: %{"application/json" => _}
+       }) do
+    quote do
+      def decode_response(response) do
+        with {:ok, decoded_json} <- unquote(builder.json_decoder).(response) do
+          do_decode(decoded_json, [])
+        end
+      end
+
+      defp do_decode(%{} = response, namespace) do
+        params = for {key, value} <- response, do: {String.to_atom(key), value}
+
+        {:ok, struct!(resolve_module(namespace), params)}
+      end
+
+      defp do_decode(response, namespace) when is_list(response) do
+        item_namespace = namespace ++ ["item"]
+
+        Enum.reduce_while(response, [], fn item, items ->
+          case do_decode(item, item_namespace) do
+            {:ok, item} ->
+              {:cont, [item | items]}
+
+            {:error, error} ->
+              {:halt, {:error, error}}
+          end
+        end)
+        |> case do
+          items when is_list(items) ->
+            {:ok, items}
+
+          {:error, error} ->
+            {:error, error}
+        end
+      end
+
+      defp resolve_module(namespace) do
+        ["#{__MODULE__}" | Enum.map(namespace, &Macro.camelize("#{&1}"))]
+        |> Enum.join(".")
+        |> String.to_atom()
+      end
+    end
+  end
+
+  defp define_decode_response_function(%Builder{}, %Schema.Response{}) do
+    quote do
+      def decode_response(response) do
+        {:ok, response}
+      end
+    end
   end
 
   @spec define_operation_functions(
@@ -203,8 +342,8 @@ defmodule OpenAPI.Builder do
   defp define_operation_decode_response_function do
     quote do
       @spec decode_response(Tesla.Env.result()) :: any()
-      defp decode_response(%Tesla.Env{body: body}, options \\ []) do
-        {:ok, body}
+      defp decode_response(%Tesla.Env{status: status_code, body: body}, options \\ []) do
+        apply(:"#{__MODULE__}.Response.Status#{status_code}", :decode_response, [body])
       end
     end
   end
@@ -288,10 +427,28 @@ defmodule OpenAPI.Builder do
     end
   end
 
+  defp define_typed_struct(
+         %Builder{parent_module: parent_module} = builder,
+         %Schema.DataSchema{
+           type: :array,
+           items: item_data_schema
+         }
+       ) do
+    quote do
+      use TypedStruct
+
+      typedstruct do
+        field(:items, [unquote(module_name(parent_module, ["Item"])).t()])
+      end
+
+      unquote(define_nested_structs(builder, {"Item", item_data_schema}))
+    end
+  end
+
   @spec define_nested_structs(
           Builder.t(),
           {field_name :: String.t(), Schema.DataSchema.t()}
-        ) :: OpenAPI.ast()
+        ) :: OpenAPI.ast() | nil
   defp define_nested_structs(
          %Builder{parent_module: parent_module} = builder,
          {field_name, %Schema.DataSchema{type: :array, items: %Schema.DataSchema{} = item_schema}}
@@ -301,6 +458,19 @@ defmodule OpenAPI.Builder do
     quote do
       defmodule unquote(module_name) do
         unquote(define_typed_struct(builder, item_schema))
+      end
+    end
+  end
+
+  defp define_nested_structs(
+         %Builder{parent_module: parent_module} = builder,
+         {field_name, %Schema.DataSchema{type: :object} = schema}
+       ) do
+    module_name = module_name(parent_module, [field_name])
+
+    quote do
+      defmodule unquote(module_name) do
+        unquote(define_typed_struct(%Builder{builder | parent_module: module_name}, schema))
       end
     end
   end
