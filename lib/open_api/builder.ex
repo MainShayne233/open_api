@@ -43,7 +43,14 @@ defmodule OpenAPI.Builder do
 
     quote do
       defmodule unquote(path_module_name) do
+        @path_name unquote(path_name)
+
+        @spec path_name :: String.t()
+        def path_name, do: @path_name
+
         (unquote_splicing(define_operation_modules(path_module_name, path_item)))
+
+        defdelegate domain, to: unquote(parent_module)
       end
     end
   end
@@ -57,25 +64,115 @@ defmodule OpenAPI.Builder do
     |> Enum.map(fn operation_type ->
       module_name = module_name(parent_module, [Atom.to_string(operation_type)])
 
+      operation = Map.get(path_item, operation_type)
+
       quote do
         defmodule unquote(module_name) do
-          unquote(define_request_body_module(module_name, Map.get(path_item, operation_type)))
+          unquote(define_request_body_module(module_name, operation))
+
+          unquote(define_operation_functions(parent_module, operation_type))
+
+          defdelegate domain, to: unquote(parent_module)
+          defdelegate path_name, to: unquote(parent_module)
         end
       end
     end)
   end
 
+  @spec define_operation_functions(
+          parent_module :: module(),
+          operation_type :: Schema.PathItem.operation_type()
+        ) :: OpenAPI.ast()
+  defp define_operation_functions(parent_module, operation_type) when is_atom(operation_type) do
+    quote do
+      unquote(define_operation_middleware_function(parent_module, operation_type))
+      unquote(define_operation_adapter_function(parent_module, operation_type))
+      unquote(define_operation_client_function(parent_module, operation_type))
+      unquote(define_operation_path_function(parent_module, operation_type))
+      unquote(define_operation_make_request_function(parent_module, operation_type))
+    end
+  end
+
+  @spec define_operation_middleware_function(
+          parent_module :: module(),
+          Schema.PathItem.operation_type()
+        ) :: OpenAPI.ast()
+  defp define_operation_middleware_function(_parent_module, _operation_type) do
+    quote do
+      @spec middleware(options :: Keyword.t()) :: Tesla.Client.middleware()
+      def middleware(options \\ []) do
+        []
+      end
+    end
+  end
+
+  @spec define_operation_adapter_function(
+          parent_module :: module(),
+          Schema.PathItem.operation_type()
+        ) :: OpenAPI.ast()
+  defp define_operation_adapter_function(_parent_module, _operation_type) do
+    quote do
+      @spec adapter(options :: Keyword.t()) :: Tesla.Client.adapter()
+      def adapter(options \\ []) do
+        Keyword.get(options, :tesla_adapter, Tesla.Adapter.Httpc)
+      end
+    end
+  end
+
+  @spec define_operation_client_function(
+          parent_module :: module(),
+          Schema.PathItem.operation_type()
+        ) :: OpenAPI.ast()
+  defp define_operation_client_function(_parent_module, _operation_type) do
+    quote do
+      @spec client(options :: Keyword.t()) :: Tesla.Client.t()
+      def client(options \\ []) do
+        Tesla.client(middleware(options), adapter(options))
+      end
+    end
+  end
+
+  @spec define_operation_path_function(
+          parent_module :: module(),
+          Schema.PathItem.operation_type()
+        ) :: OpenAPI.ast()
+  defp define_operation_path_function(_parent_module, _operation_type) do
+    quote do
+      @spec path(options :: Keyword.t()) :: any()
+      def path(options \\ []) do
+        Path.join(domain(), path_name())
+      end
+    end
+  end
+
+  @spec define_operation_make_request_function(
+          parent_module :: module(),
+          Schema.PathItem.operation_type()
+        ) :: OpenAPI.ast()
+  defp define_operation_make_request_function(_parent_module, operation_type) do
+    quote do
+      @spec make_request(options :: Keyword.t()) :: any()
+      def make_request(options \\ []) do
+        apply(Tesla, unquote(operation_type), [client(options), path(options)])
+      end
+    end
+  end
+
   @spec define_request_body_module(parent_module :: module(), Schema.Operation.t()) ::
           OpenAPI.ast()
   defp define_request_body_module(parent_module, %Schema.Operation{} = operation) do
-    module_name = module_name(parent_module, ["RequestBody"])
+    if operation.request_body do
+      module_name = module_name(parent_module, ["RequestBody"])
 
-    quote do
-      defmodule unquote(module_name) do
-        @moduledoc unquote(operation.description || false)
+      quote do
+        defmodule unquote(module_name) do
+          @moduledoc unquote(operation.description || false)
 
-        unquote(define_typed_struct_for_operation(module_name, operation))
+          unquote(define_typed_struct_for_operation(module_name, operation))
+        end
       end
+    else
+      nil
     end
   end
 
@@ -269,6 +366,9 @@ defmodule OpenAPI.Builder do
   defp define_domain(%Schema{servers: [%Schema.Server{url: url}]}) when is_binary(url) do
     quote do
       @domain unquote(url)
+
+      @spec domain :: String.t()
+      def domain, do: @domain
     end
   end
 
