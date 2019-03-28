@@ -3,7 +3,7 @@ defmodule OpenAPI.Schema.DataSchema do
 
   alias OpenAPI.Schema.DataSchema
 
-  @type type :: :string | :object | :integer | :float | :array
+  @type type :: :string | :object | :integer | :float | :array | :boolean
 
   typedstruct do
     field(:type, type())

@@ -260,6 +260,12 @@ defmodule OpenAPI.Parser do
     }
   end
 
+  defp parse_data_schema(%{"type" => "boolean"}) do
+    %Schema.DataSchema{
+      type: :boolean
+    }
+  end
+
   defp parse_data_schema(%{"type" => other}) do
     raise "Not supporting data schema type: #{other}"
   end

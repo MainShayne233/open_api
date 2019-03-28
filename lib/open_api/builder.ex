@@ -1,6 +1,20 @@
 defmodule OpenAPI.Builder do
   alias OpenAPI.Schema
 
+  @type t :: %__MODULE__{
+          schema: Schema.t(),
+          host_module: module(),
+          parent_module: module()
+        }
+
+  defstruct [
+    :schema,
+    :host_module,
+    :parent_module
+  ]
+
+  alias OpenAPI.Builder
+
   defmacro __before_compile__(_env) do
     params = Module.get_attribute(__CALLER__.module, :params)
     Module.delete_attribute(__CALLER__.module, :params)
@@ -15,30 +29,38 @@ defmodule OpenAPI.Builder do
   @doc """
   Generates the AST for the API defined by the schema.
   """
-  @spec generate_api(Schema.t(), parent_module() :: module()) :: OpenAPI.ast()
-  def generate_api(schema, parent_module) do
+  @spec generate_api(Schema.t(), parent_module :: module()) :: OpenAPI.ast()
+  def generate_api(%Schema{} = schema, parent_module) do
+    builder = %Builder{
+      schema: schema,
+      host_module: parent_module,
+      parent_module: parent_module
+    }
+
     quote do
-      unquote(define_module_doc(schema))
+      unquote(define_domain(builder))
 
-      unquote(define_domain(schema))
-
-      unquote_splicing(define_path_modules(schema, parent_module))
+      unquote_splicing(define_path_modules(builder))
     end
   end
 
-  @spec define_path_modules(Schema.t(), parent_module :: module()) :: [OpenAPI.ast()]
-  defp define_path_modules(%Schema{paths: %{} = paths}, parent_module) do
+  @spec define_path_modules(Builder.t()) :: [OpenAPI.ast()]
+  defp define_path_modules(%Builder{schema: %Schema{paths: %{} = paths}} = builder) do
     Enum.map(paths, fn {path_name, %Schema.PathItem{} = path_item} ->
-      define_path_module(path_name, path_item, parent_module)
+      define_path_module(builder, path_name, path_item)
     end)
   end
 
   @spec define_path_module(
+          Builder.t(),
           path_name :: String.t(),
-          Schema.PathItem.t(),
-          parent_module :: module()
+          Schema.PathItem.t()
         ) :: OpenAPI.ast()
-  defp define_path_module(path_name, %Schema.PathItem{} = path_item, parent_module) do
+  defp define_path_module(
+         %Builder{parent_module: parent_module} = builder,
+         path_name,
+         %Schema.PathItem{} = path_item
+       ) do
     path_module_name = path_name_to_module_name(parent_module, path_name)
 
     quote do
@@ -48,17 +70,25 @@ defmodule OpenAPI.Builder do
         @spec path_name :: String.t()
         def path_name, do: @path_name
 
-        (unquote_splicing(define_operation_modules(path_module_name, path_item)))
+        (unquote_splicing(
+           define_operation_modules(
+             %Builder{builder | parent_module: path_module_name},
+             path_item
+           )
+         ))
 
         defdelegate domain, to: unquote(parent_module)
       end
     end
   end
 
-  @spec define_operation_modules(parent_module :: module(), Schema.PathItem.t()) :: [
+  @spec define_operation_modules(Builder.t(), Schema.PathItem.t()) :: [
           OpenAPI.ast()
         ]
-  defp define_operation_modules(parent_module, %Schema.PathItem{} = path_item) do
+  defp define_operation_modules(
+         %Builder{parent_module: parent_module} = builder,
+         %Schema.PathItem{} = path_item
+       ) do
     Schema.PathItem.all_operation_types()
     |> Enum.filter(&Map.get(path_item, &1))
     |> Enum.map(fn operation_type ->
@@ -68,9 +98,11 @@ defmodule OpenAPI.Builder do
 
       quote do
         defmodule unquote(module_name) do
-          unquote(define_request_body_module(module_name, operation))
+          unquote(
+            define_request_body_module(%Builder{builder | parent_module: module_name}, operation)
+          )
 
-          unquote(define_operation_functions(parent_module, operation_type))
+          unquote(define_operation_functions(builder, operation_type))
 
           defdelegate domain, to: unquote(parent_module)
           defdelegate path_name, to: unquote(parent_module)
@@ -80,26 +112,27 @@ defmodule OpenAPI.Builder do
   end
 
   @spec define_operation_functions(
-          parent_module :: module(),
+          Builder.t(),
           operation_type :: Schema.PathItem.operation_type()
         ) :: OpenAPI.ast()
-  defp define_operation_functions(parent_module, operation_type) when is_atom(operation_type) do
+  defp define_operation_functions(
+         %Builder{},
+         operation_type
+       )
+       when is_atom(operation_type) do
     quote do
-      unquote(define_operation_middleware_function(parent_module, operation_type))
-      unquote(define_operation_adapter_function(parent_module, operation_type))
-      unquote(define_operation_client_function(parent_module, operation_type))
-      unquote(define_operation_path_function(parent_module, operation_type))
-      unquote(define_operation_make_request_function(parent_module, operation_type))
-      unquote(define_operation_handle_response_function(parent_module, operation_type))
-      unquote(define_operation_decode_response_function(parent_module, operation_type))
+      unquote(define_operation_middleware_function())
+      unquote(define_operation_adapter_function())
+      unquote(define_operation_client_function())
+      unquote(define_operation_path_function())
+      unquote(define_operation_make_request_function(operation_type))
+      unquote(define_operation_handle_response_function())
+      unquote(define_operation_decode_response_function())
     end
   end
 
-  @spec define_operation_middleware_function(
-          parent_module :: module(),
-          Schema.PathItem.operation_type()
-        ) :: OpenAPI.ast()
-  defp define_operation_middleware_function(_parent_module, _operation_type) do
+  @spec define_operation_middleware_function :: OpenAPI.ast()
+  defp define_operation_middleware_function do
     quote do
       @spec middleware(options :: Keyword.t()) :: Tesla.Client.middleware()
       def middleware(options \\ []) do
@@ -108,11 +141,8 @@ defmodule OpenAPI.Builder do
     end
   end
 
-  @spec define_operation_adapter_function(
-          parent_module :: module(),
-          Schema.PathItem.operation_type()
-        ) :: OpenAPI.ast()
-  defp define_operation_adapter_function(_parent_module, _operation_type) do
+  @spec define_operation_adapter_function :: OpenAPI.ast()
+  defp define_operation_adapter_function do
     quote do
       @spec adapter(options :: Keyword.t()) :: Tesla.Client.adapter()
       def adapter(options \\ []) do
@@ -121,11 +151,8 @@ defmodule OpenAPI.Builder do
     end
   end
 
-  @spec define_operation_client_function(
-          parent_module :: module(),
-          Schema.PathItem.operation_type()
-        ) :: OpenAPI.ast()
-  defp define_operation_client_function(_parent_module, _operation_type) do
+  @spec define_operation_client_function :: OpenAPI.ast()
+  defp define_operation_client_function do
     quote do
       @spec client(options :: Keyword.t()) :: Tesla.Client.t()
       def client(options \\ []) do
@@ -134,11 +161,8 @@ defmodule OpenAPI.Builder do
     end
   end
 
-  @spec define_operation_path_function(
-          parent_module :: module(),
-          Schema.PathItem.operation_type()
-        ) :: OpenAPI.ast()
-  defp define_operation_path_function(_parent_module, _operation_type) do
+  @spec define_operation_path_function :: OpenAPI.ast()
+  defp define_operation_path_function do
     quote do
       @spec path(options :: Keyword.t()) :: any()
       def path(options \\ []) do
@@ -147,11 +171,8 @@ defmodule OpenAPI.Builder do
     end
   end
 
-  @spec define_operation_make_request_function(
-          parent_module :: module(),
-          Schema.PathItem.operation_type()
-        ) :: OpenAPI.ast()
-  defp define_operation_make_request_function(_parent_module, operation_type) do
+  @spec define_operation_make_request_function(Schema.PathItem.operation_type()) :: OpenAPI.ast()
+  defp define_operation_make_request_function(operation_type) do
     quote do
       @spec make_request(options :: Keyword.t()) :: any()
       def make_request(options \\ []) do
@@ -162,11 +183,8 @@ defmodule OpenAPI.Builder do
     end
   end
 
-  @spec define_operation_handle_response_function(
-          parent_module :: module(),
-          Schema.PathItem.operation_type()
-        ) :: OpenAPI.ast()
-  defp define_operation_handle_response_function(_parent_module, _operation_type) do
+  @spec define_operation_handle_response_function :: OpenAPI.ast()
+  defp define_operation_handle_response_function do
     quote do
       @spec handle_response(Tesla.Env.result()) :: any()
       defp handle_response(response, options \\ []) do
@@ -181,11 +199,8 @@ defmodule OpenAPI.Builder do
     end
   end
 
-  @spec define_operation_decode_response_function(
-          parent_module :: module(),
-          Schema.PathItem.operation_type()
-        ) :: OpenAPI.ast()
-  defp define_operation_decode_response_function(_parent_module, _operation_type) do
+  @spec define_operation_decode_response_function :: OpenAPI.ast()
+  defp define_operation_decode_response_function do
     quote do
       @spec decode_response(Tesla.Env.result()) :: any()
       defp decode_response(%Tesla.Env{body: body}, options \\ []) do
@@ -194,9 +209,11 @@ defmodule OpenAPI.Builder do
     end
   end
 
-  @spec define_request_body_module(parent_module :: module(), Schema.Operation.t()) ::
-          OpenAPI.ast()
-  defp define_request_body_module(parent_module, %Schema.Operation{} = operation) do
+  @spec define_request_body_module(Builder.t(), Schema.Operation.t()) :: OpenAPI.ast()
+  defp define_request_body_module(
+         %Builder{parent_module: parent_module} = builder,
+         %Schema.Operation{} = operation
+       ) do
     if operation.request_body do
       module_name = module_name(parent_module, ["RequestBody"])
 
@@ -204,7 +221,12 @@ defmodule OpenAPI.Builder do
         defmodule unquote(module_name) do
           @moduledoc unquote(operation.description || false)
 
-          unquote(define_typed_struct_for_operation(module_name, operation))
+          unquote(
+            define_typed_struct_for_operation(
+              %Builder{builder | parent_module: module_name},
+              operation
+            )
+          )
         end
       end
     else
@@ -212,9 +234,8 @@ defmodule OpenAPI.Builder do
     end
   end
 
-  @spec define_typed_struct_for_operation(parent_module :: module(), Schema.Operation.t()) ::
-          OpenAPI.ast()
-  defp define_typed_struct_for_operation(parent_module, %Schema.Operation{
+  @spec define_typed_struct_for_operation(Builder.t(), Schema.Operation.t()) :: OpenAPI.ast()
+  defp define_typed_struct_for_operation(%Builder{} = builder, %Schema.Operation{
          request_body: %Schema.RequestBody{
            content: %{
              "application/json" => %Schema.RequestPayload{
@@ -224,17 +245,17 @@ defmodule OpenAPI.Builder do
          }
        }) do
     quote do
-      unquote(define_typed_struct(parent_module, data_schema))
+      unquote(define_typed_struct(builder, data_schema))
     end
   end
 
-  defp define_typed_struct_for_operation(parent_module, %Schema.Operation{
+  defp define_typed_struct_for_operation(%Builder{} = builder, %Schema.Operation{
          parameters: [_ | _] = parameters
        }) do
     data_schema = convert_parameters_to_data_schema(parameters)
 
     quote do
-      unquote(define_typed_struct(parent_module, data_schema))
+      unquote(define_typed_struct(builder, data_schema))
     end
   end
 
@@ -247,8 +268,8 @@ defmodule OpenAPI.Builder do
     end)
   end
 
-  @spec define_typed_struct(parent_module :: module(), Schema.DataSchema.t()) :: OpenAPI.ast()
-  defp define_typed_struct(parent_module, %Schema.DataSchema{
+  @spec define_typed_struct(Builder.t(), Schema.DataSchema.t()) :: OpenAPI.ast()
+  defp define_typed_struct(%Builder{} = builder, %Schema.DataSchema{
          type: :object,
          properties: %{} = properties
        }) do
@@ -256,30 +277,30 @@ defmodule OpenAPI.Builder do
       use TypedStruct
 
       typedstruct do
-        (unquote_splicing(Enum.map(properties, &define_typed_struct_field(parent_module, &1))))
+        (unquote_splicing(Enum.map(properties, &define_typed_struct_field(builder, &1))))
       end
 
       (unquote_splicing(
          properties
-         |> Enum.map(&define_nested_structs(parent_module, &1))
+         |> Enum.map(&define_nested_structs(builder, &1))
          |> Enum.reject(&is_nil/1)
        ))
     end
   end
 
   @spec define_nested_structs(
-          parent_module :: module(),
+          Builder.t(),
           {field_name :: String.t(), Schema.DataSchema.t()}
         ) :: OpenAPI.ast()
   defp define_nested_structs(
-         parent_module,
+         %Builder{parent_module: parent_module} = builder,
          {field_name, %Schema.DataSchema{type: :array, items: %Schema.DataSchema{} = item_schema}}
        ) do
     module_name = module_name(parent_module, [field_name, "item"])
 
     quote do
       defmodule unquote(module_name) do
-        unquote(define_typed_struct(parent_module, item_schema))
+        unquote(define_typed_struct(builder, item_schema))
       end
     end
   end
@@ -289,27 +310,31 @@ defmodule OpenAPI.Builder do
   end
 
   @spec define_typed_struct_field(
-          parent_module :: module(),
+          Builder.t(),
           {field_name :: String.t(), Schema.DataSchema.t()}
         ) :: OpenAPI.ast()
-  defp define_typed_struct_field(parent_module, {field_name, field_schema}) do
+  defp define_typed_struct_field(%Builder{} = builder, {field_name, field_schema}) do
     quote do
       field(
         unquote(String.to_atom(field_name)),
-        unquote(typed_struct_field_type(parent_module, field_name, field_schema))
+        unquote(typed_struct_field_type(builder, field_name, field_schema))
       )
     end
   end
 
   @spec typed_struct_field_type(
-          parent_module :: module(),
+          Builder.t(),
           field_name :: String.t(),
           Schema.DataSchema.t()
         ) :: OpenAPI.ast()
-  defp typed_struct_field_type(parent_module, field_name, %Schema.DataSchema{
-         type: :array,
-         items: %Schema.DataSchema{} = item_schema
-       }) do
+  defp typed_struct_field_type(
+         %Builder{parent_module: parent_module} = builder,
+         field_name,
+         %Schema.DataSchema{
+           type: :array,
+           items: %Schema.DataSchema{} = item_schema
+         }
+       ) do
     item_type =
       case item_schema.type do
         :object ->
@@ -318,7 +343,7 @@ defmodule OpenAPI.Builder do
           end
 
         _other ->
-          typed_struct_field_type(parent_module, field_name, item_schema)
+          typed_struct_field_type(builder, field_name, item_schema)
       end
 
     quote do
@@ -326,36 +351,46 @@ defmodule OpenAPI.Builder do
     end
   end
 
-  defp typed_struct_field_type(parent_module, field_name, %Schema.DataSchema{
-         type: :object,
-         properties: %{} = _properties
-       }) do
+  defp typed_struct_field_type(
+         %Builder{parent_module: parent_module},
+         field_name,
+         %Schema.DataSchema{
+           type: :object,
+           properties: %{} = _properties
+         }
+       ) do
     quote do
       unquote(module_name(parent_module, [field_name])).t()
     end
   end
 
-  defp typed_struct_field_type(_parent_module, _field_name, %Schema.DataSchema{type: :string}) do
+  defp typed_struct_field_type(_builder, _field_name, %Schema.DataSchema{type: :string}) do
     quote do
       String.t()
     end
   end
 
-  defp typed_struct_field_type(_parent_module, _field_name, %Schema.DataSchema{type: :integer}) do
+  defp typed_struct_field_type(_builder, _field_name, %Schema.DataSchema{type: :integer}) do
     quote do
       integer()
     end
   end
 
-  defp typed_struct_field_type(_parent_module, _field_name, %Schema.DataSchema{type: :float}) do
+  defp typed_struct_field_type(_builder, _field_name, %Schema.DataSchema{type: :float}) do
     quote do
       float()
     end
   end
 
-  defp typed_struct_field_type(_parent_module, _field_name, %Schema.DataSchema{type: :number}) do
+  defp typed_struct_field_type(_builder, _field_name, %Schema.DataSchema{type: :number}) do
     quote do
       number()
+    end
+  end
+
+  defp typed_struct_field_type(_builder, _field_name, %Schema.DataSchema{type: :boolean}) do
+    quote do
+      boolean()
     end
   end
 
@@ -377,29 +412,8 @@ defmodule OpenAPI.Builder do
     |> String.to_atom()
   end
 
-  @spec define_module_doc(Schema.t()) :: OpenAPI.ast()
-  defp define_module_doc(%Schema{
-         info: %Schema.Info{title: title, description: description, version: version}
-       })
-       when is_binary(title) and is_binary(description) and is_binary(version) do
-    doc = """
-    #{title} - #{version}
-
-    #{description}
-    """
-
-    quote do
-      @moduledoc unquote(doc)
-    end
-  end
-
-  defp define_module_doc(%Schema{}) do
-    quote do
-      @moduledoc false
-    end
-  end
-
-  defp define_domain(%Schema{servers: [%Schema.Server{url: url}]}) when is_binary(url) do
+  defp define_domain(%Builder{schema: %Schema{servers: [%Schema.Server{url: url}]}})
+       when is_binary(url) do
     quote do
       @domain unquote(url)
 
@@ -408,7 +422,7 @@ defmodule OpenAPI.Builder do
     end
   end
 
-  defp define_domain(%Schema{}) do
+  defp define_domain(%Builder{}) do
     raise "schema.servers must be a single-item list w/ a single %Schema.Server{}"
   end
 end

@@ -49,7 +49,8 @@ defmodule OpenAPITest do
     end
 
     test "should generate the /health_check path code" do
-      assert {:ok, "healthy!"} = __MODULE__.MockAPI.HealthCheck.Get.make_request(tesla_adapter: Tesla.Mock)
+      assert {:ok, "healthy!"} =
+               __MODULE__.MockAPI.HealthCheck.Get.make_request(tesla_adapter: Tesla.Mock)
     end
   end
 end
