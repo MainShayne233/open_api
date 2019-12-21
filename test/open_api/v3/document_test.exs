@@ -13,14 +13,45 @@ defmodule OpenAPI.V3.DocumentTest do
         "contact" => %{
           "name" => "Contact Name",
           "url" => "http://contact.url.com",
-          "email" => "contact@me.com",
+          "email" => "contact@me.com"
         },
         "license" => %{
           "name" => "License Name",
-          "url" => "http://license.url.com",
+          "url" => "http://license.url.com"
         },
         "version" => "3.0.0"
-      }
+      },
+      "servers" => [
+        %{
+          "url" => "https://dev.server.com",
+          "description" => "Development server"
+        },
+        %{
+          "url" => "https://staging.server.com",
+          "description" => "Staging server"
+        },
+        %{
+          "url" => "https://{username}.gigantic-server.com:{port}/{basePath}",
+          "description" => "Production server",
+          "variables" => %{
+            "username" => %{
+              "default" => "demo",
+              "description" =>
+                "this value is assigned by the service provider, in this example `gigantic-server.com`"
+            },
+            "port" => %{
+              "enum" => [
+                "8443",
+                "443"
+              ],
+              "default" => "8443"
+            },
+            "basePath" => %{
+              "default" => "v2"
+            }
+          }
+        }
+      ]
     }
 
     %{valid_document: valid_document}
@@ -39,14 +70,45 @@ defmodule OpenAPI.V3.DocumentTest do
                     contact: %V3.Contact{
                       name: "Contact Name",
                       url: "http://contact.url.com",
-                      email: "contact@me.com",
+                      email: "contact@me.com"
                     },
                     license: %V3.License{
                       name: "License Name",
-                      url: "http://license.url.com",
+                      url: "http://license.url.com"
                     },
                     version: "3.0.0"
-                  }
+                  },
+                  servers: [
+                    %V3.Server{
+                      url: "https://dev.server.com",
+                      description: "Development server"
+                    },
+                    %V3.Server{
+                      url: "https://staging.server.com",
+                      description: "Staging server"
+                    },
+                    %V3.Server{
+                      url: "https://{username}.gigantic-server.com:{port}/{basePath}",
+                      description: "Production server",
+                      variables: %{
+                        "username" => %V3.ServerVariable{
+                          default: "demo",
+                          description:
+                            "this value is assigned by the service provider, in this example `gigantic-server.com`"
+                        },
+                        "port" => %V3.ServerVariable{
+                          enum: [
+                            "8443",
+                            "443"
+                          ],
+                          default: "8443"
+                        },
+                        "basePath" => %V3.ServerVariable{
+                          default: "v2"
+                        }
+                      }
+                    }
+                  ]
                 }}
     end
   end

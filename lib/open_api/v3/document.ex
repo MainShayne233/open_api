@@ -8,8 +8,9 @@ defmodule OpenAPI.V3.Document do
   alias OpenAPI.V3
 
   cereal do
-    field :openapi, String.t()
-    field :info, {:cereal, V3.Info}
+    field(:openapi, String.t())
+    field(:info, {:cereal, V3.Info})
+    field(:servers, list({:cereal, V3.Server}))
   end
 
   def cast(document) do

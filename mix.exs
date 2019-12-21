@@ -17,9 +17,10 @@ defmodule OpenAPI.MixProject do
 
   defp deps do
     [
-      {:breakfast, github: "MainShayne233/breakfast", branch: "master"},
+      {:breakfast, path: "../breakfast"},
+      # {:breakfast, github: "MainShayne233/breakfast", branch: "master"},
       {:jason, "~> 1.1", only: :dev},
-      {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
+      {:mix_test_watch, "~> 0.8", only: :dev, runtime: false}
     ]
   end
 end
