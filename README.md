@@ -1,4 +1,4 @@
-# OpenApi
+# OpenAPI
 
 **TODO: Add description**
 
