@@ -51,7 +51,34 @@ defmodule OpenAPI.V3.DocumentTest do
             }
           }
         }
-      ]
+      ],
+      "paths" => %{
+        "/" => %{
+          "$ref" => "http://some.ref.com",
+          "summary" => "I am summarizing this path",
+          "description" => "I am describing this path",
+          "get" => %{
+            "tags" => ["tag_a", "tag_b"],
+            "summary" => "I am summarizing this operation",
+            "description" => "I am describing this operation",
+            "externalDocs" => %{
+              "url" => "http://external.docs.com",
+              "description" => "I am describing these external docs"
+            },
+            "operationId" => "operation-id",
+            "parameters" => [
+              %{
+                "name" => "key",
+                "in" => "query",
+                "description" => "Some description",
+                "required" => true,
+                "deprecated" => false,
+                "allowEmptyValue" => false
+              }
+            ]
+          }
+        }
+      }
     }
 
     %{valid_document: valid_document}
@@ -108,7 +135,34 @@ defmodule OpenAPI.V3.DocumentTest do
                         }
                       }
                     }
-                  ]
+                  ],
+                  paths: %{
+                    "/" => %V3.PathItem{
+                      ref: "http://some.ref.com",
+                      summary: "I am summarizing this path",
+                      description: "I am describing this path",
+                      get: %V3.Operation{
+                        tags: ["tag_a", "tag_b"],
+                        summary: "I am summarizing this operation",
+                        description: "I am describing this operation",
+                        external_docs: %V3.ExternalDocumentation{
+                          url: "http://external.docs.com",
+                          description: "I am describing these external docs"
+                        },
+                        operation_id: "operation-id",
+                        parameters: [
+                          %V3.Parameter{
+                            name: "key",
+                            in: :query,
+                            description: "Some description",
+                            required: true,
+                            deprecated: false,
+                            allow_empty_value: false
+                          }
+                        ]
+                      }
+                    }
+                  }
                 }}
     end
   end

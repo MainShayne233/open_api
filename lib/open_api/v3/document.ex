@@ -11,6 +11,7 @@ defmodule OpenAPI.V3.Document do
     field(:openapi, String.t())
     field(:info, {:cereal, V3.Info})
     field(:servers, list({:cereal, V3.Server}))
+    field(:paths, %{required(path :: String.t()) => {:cereal, V3.PathItem}})
   end
 
   def cast(document) do
