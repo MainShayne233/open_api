@@ -17,5 +17,10 @@ defmodule OpenAPI.V3.Operation do
 
     field(:operation_id, String.t() | nil, default: nil, fetch: {OpenAPI.Util, :camel_key_fetch})
     field(:parameters, [{:cereal, V3.Parameter} | {:cereal, V3.Reference}] | nil, default: nil)
+
+    field(:request_body, {:cereal, V3.RequestBody} | {:cereal, V3.Reference} | nil,
+      default: nil,
+      fetch: {OpenAPI.Util, :camel_key_fetch}
+    )
   end
 end

@@ -75,7 +75,43 @@ defmodule OpenAPI.V3.DocumentTest do
                 "deprecated" => false,
                 "allowEmptyValue" => false
               }
-            ]
+            ],
+            "requestBody" => %{
+              "description" => "Some description",
+              "content" => %{
+                "application/json" => %{
+                  "schema" => %{
+                    "nullable" => true,
+                    "discriminator" => %{
+                      "propertyName" => "type",
+                      "mapping" => %{
+                        "dog" => "#/components/schemas/Dog"
+                      }
+                    },
+                    "readOnly" => true,
+                    "writeOnly" => true,
+                    "xml" => %{
+                      "name" => "XML name",
+                      "namespace" => "XML namespace",
+                      "prefix" => "XML prefix",
+                      "attribute" => true,
+                      "wrapped" => true
+                    },
+                    "externalDocs" => %{
+                      "url" => "http://external.docs.com",
+                      "description" => "I am describing these external docs"
+                    },
+                    "example" => %{
+                      "key" => "value"
+                    },
+                    "deprecated" => false
+                  },
+                  "example" => %{
+                    "key" => "value"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -159,7 +195,43 @@ defmodule OpenAPI.V3.DocumentTest do
                             deprecated: false,
                             allow_empty_value: false
                           }
-                        ]
+                        ],
+                        request_body: %V3.RequestBody{
+                          description: "Some description",
+                          content: %{
+                            "application/json" => %V3.MediaType{
+                              schema: %V3.Schema{
+                                nullable: true,
+                                discriminator: %V3.Discriminator{
+                                  property_name: "type",
+                                  mapping: %{
+                                    "dog" => "#/components/schemas/Dog"
+                                  }
+                                },
+                                read_only: true,
+                                write_only: true,
+                                xml: %V3.XML{
+                                  name: "XML name",
+                                  namespace: "XML namespace",
+                                  prefix: "XML prefix",
+                                  attribute: true,
+                                  wrapped: true
+                                },
+                                external_docs: %V3.ExternalDocumentation{
+                                  url: "http://external.docs.com",
+                                  description: "I am describing these external docs"
+                                },
+                                example: %{
+                                  "key" => "value"
+                                },
+                                deprecated: false
+                              },
+                              example: %{
+                                "key" => "value"
+                              }
+                            }
+                          }
+                        }
                       }
                     }
                   }
