@@ -108,6 +108,14 @@ defmodule OpenAPI.V3.DocumentTest do
                   },
                   "example" => %{
                     "key" => "value"
+                  },
+                  "examples" => %{
+                    "key" => %{
+                      "summary" => "Example summary",
+                      "description" => "Example description",
+                      "value" => %{"some" => "value"},
+                      "externalValue" => "https://external.value.com"
+                    }
                   }
                 }
               }
@@ -228,6 +236,14 @@ defmodule OpenAPI.V3.DocumentTest do
                               },
                               example: %{
                                 "key" => "value"
+                              },
+                              examples: %{
+                                "key" => %V3.Example{
+                                  summary: "Example summary",
+                                  description: "Example description",
+                                  value: %{"some" => "value"},
+                                  external_value: "https://external.value.com"
+                                }
                               }
                             }
                           }

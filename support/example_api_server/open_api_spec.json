@@ -1,0 +1,119 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OpenAPI Example API Server",
+    "contact": {},
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8880",
+      "variables": {}
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "Misc"
+        ],
+        "summary": "Hello World",
+        "operationId": "HelloWorld",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "cache-control": {
+                "content": {
+                  "text/plain": {
+                    "schema": {
+                      "type": "string"
+                    },
+                    "example": "max-age=0, private, must-revalidate"
+                  }
+                }
+              },
+              "content-length": {
+                "content": {
+                  "text/plain": {
+                    "schema": {
+                      "type": "string"
+                    },
+                    "example": "17"
+                  }
+                }
+              },
+              "content-type": {
+                "content": {
+                  "text/plain": {
+                    "schema": {
+                      "type": "string"
+                    },
+                    "example": "application/json; charset=utf-8"
+                  }
+                }
+              },
+              "date": {
+                "content": {
+                  "text/plain": {
+                    "schema": {
+                      "type": "string"
+                    },
+                    "example": "Mon, 20 Jan 2020 20:37:11 GMT"
+                  }
+                }
+              },
+              "server": {
+                "content": {
+                  "text/plain": {
+                    "schema": {
+                      "type": "string"
+                    },
+                    "example": "Cowboy"
+                  }
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HelloWorld"
+                },
+                "example": {
+                  "hello": "world"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HelloWorld": {
+        "title": "HelloWorld",
+        "required": [
+          "hello"
+        ],
+        "type": "object",
+        "properties": {
+          "hello": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "hello": "world"
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Misc",
+      "description": ""
+    }
+  ]
+}
