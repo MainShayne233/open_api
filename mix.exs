@@ -19,7 +19,7 @@ defmodule OpenAPI.MixProject do
     [
       {:breakfast, path: "../breakfast"},
       # {:breakfast, github: "MainShayne233/breakfast", branch: "master"},
-      {:jason, "~> 1.1", only: :dev},
+      {:jason, "~> 1.1", only: [:dev, :test]},
       {:mix_test_watch, "~> 0.8", only: :dev, runtime: false}
     ]
   end

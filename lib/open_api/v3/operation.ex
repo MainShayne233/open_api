@@ -22,5 +22,10 @@ defmodule OpenAPI.V3.Operation do
       default: nil,
       fetch: {OpenAPI.Util, :camel_key_fetch}
     )
+
+    field(:responses, %{
+      required(status_code :: String.t()) => {:cereal, V3.Response} | {:cereal, V3.Reference},
+      optional(default :: String.t()) => {:cereal, V3.Response} | {:cereal, V3.Reference}
+    })
   end
 end
