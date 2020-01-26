@@ -89,6 +89,128 @@
         },
         "deprecated": false
       }
+    },
+    "/math": {
+      "post": {
+        "tags": [
+          "Misc"
+        ],
+        "summary": "Math",
+        "operationId": "Math",
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "style": "simple",
+            "schema": {
+              "type": "string",
+              "example": "application/json"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "encoding": {},
+              "schema": {
+                "required": [
+                  "lhs",
+                  "rhs",
+                  "operation"
+                ],
+                "type": "object",
+                "properties": {
+                  "lhs": {
+                    "type": "integer",
+                    "format": "int32",
+                    "example": 5
+                  },
+                  "rhs": {
+                    "type": "integer",
+                    "format": "int32",
+                    "example": 8
+                  },
+                  "operation": {
+                    "type": "string",
+                    "example": "add"
+                  }
+                }
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "cache-control": {
+                "content": {
+                  "text/plain": {
+                    "schema": {
+                      "type": "string"
+                    },
+                    "example": "max-age=0, private, must-revalidate"
+                  }
+                }
+              },
+              "content-length": {
+                "content": {
+                  "text/plain": {
+                    "schema": {
+                      "type": "string"
+                    },
+                    "example": "13"
+                  }
+                }
+              },
+              "content-type": {
+                "content": {
+                  "text/plain": {
+                    "schema": {
+                      "type": "string"
+                    },
+                    "example": "application/json; charset=utf-8"
+                  }
+                }
+              },
+              "date": {
+                "content": {
+                  "text/plain": {
+                    "schema": {
+                      "type": "string"
+                    },
+                    "example": "Sun, 26 Jan 2020 17:35:39 GMT"
+                  }
+                }
+              },
+              "server": {
+                "content": {
+                  "text/plain": {
+                    "schema": {
+                      "type": "string"
+                    },
+                    "example": "Cowboy"
+                  }
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Math"
+                },
+                "example": {
+                  "result": 13
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
     }
   },
   "components": {
@@ -107,9 +229,36 @@
         "example": {
           "hello": "world"
         }
+      },
+      "Math": {
+        "title": "Math",
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "example": {
+          "result": 13
+        }
+      }
+    },
+    "securitySchemes": {
+      "httpBearer": {
+        "type": "http",
+        "scheme": "bearer"
       }
     }
   },
+  "security": [
+    {
+      "httpBearer": []
+    }
+  ],
   "tags": [
     {
       "name": "Misc",

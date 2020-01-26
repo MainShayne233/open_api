@@ -10,5 +10,6 @@ defmodule OpenAPI.V3.PathItem do
     field(:summary, String.t() | nil, default: nil)
     field(:description, String.t() | nil, default: nil)
     field(:get, {:cereal, V3.Operation} | nil, default: nil)
+    field(:post, {:cereal, V3.Operation} | nil, default: nil)
   end
 end

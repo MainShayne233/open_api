@@ -1,0 +1,236 @@
+{
+	"info": {
+		"_postman_id": "ec8bbc2e-6e0b-46a6-8a88-c1fc9614e06f",
+		"name": "OpenAPI Example API Server",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Hello World",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "i-am-a-bearer-token",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8880",
+					"host": [
+						"localhost"
+					],
+					"port": "8880"
+				}
+			},
+			"response": [
+				{
+					"name": "Hello World",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8880",
+							"host": [
+								"localhost"
+							],
+							"port": "8880"
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "cache-control",
+							"value": "max-age=0, private, must-revalidate"
+						},
+						{
+							"key": "content-length",
+							"value": "17"
+						},
+						{
+							"key": "content-type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "date",
+							"value": "Mon, 20 Jan 2020 20:37:11 GMT"
+						},
+						{
+							"key": "server",
+							"value": "Cowboy"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"hello\": \"world\"\n}"
+				}
+			]
+		},
+		{
+			"name": "Math",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "i-am-a-bearer-token",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "lhs",
+							"value": "5",
+							"type": "text"
+						},
+						{
+							"key": "rhs",
+							"value": "8",
+							"type": "text"
+						},
+						{
+							"key": "operation",
+							"value": "add",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "localhost:8880/math",
+					"host": [
+						"localhost"
+					],
+					"port": "8880",
+					"path": [
+						"math"
+					],
+					"query": [
+						{
+							"key": "",
+							"value": "",
+							"disabled": true
+						},
+						{
+							"key": "",
+							"value": "",
+							"disabled": true
+						},
+						{
+							"key": "",
+							"value": "",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Math",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "lhs",
+									"value": "5",
+									"type": "text"
+								},
+								{
+									"key": "rhs",
+									"value": "8",
+									"type": "text"
+								},
+								{
+									"key": "operation",
+									"value": "add",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "localhost:8880/math",
+							"host": [
+								"localhost"
+							],
+							"port": "8880",
+							"path": [
+								"math"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "cache-control",
+							"value": "max-age=0, private, must-revalidate"
+						},
+						{
+							"key": "content-length",
+							"value": "13"
+						},
+						{
+							"key": "content-type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "date",
+							"value": "Sun, 26 Jan 2020 17:35:39 GMT"
+						},
+						{
+							"key": "server",
+							"value": "Cowboy"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"result\": 13\n}"
+				}
+			]
+		}
+	],
+	"protocolProfileBehavior": {}
+}

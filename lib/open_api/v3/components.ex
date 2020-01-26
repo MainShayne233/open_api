@@ -14,5 +14,15 @@ defmodule OpenAPI.V3.Components do
       | nil,
       default: nil
     )
+
+    field(
+      :security_schemes,
+      %{
+        required(name :: String.t()) => {:cereal, V3.SecuritySchema} | {:cereal, V3.Reference}
+      }
+      | nil,
+      default: nil,
+      fetch: {OpenAPI.Util, :camel_key_fetch}
+    )
   end
 end
