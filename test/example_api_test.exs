@@ -189,8 +189,14 @@ defmodule OpenAPI.ExampleAPITest do
       use OpenAPI.Client, document_path: "support/example_api_server/open_api_document.json"
     end
 
-    test "should define the client" do
-      assert match?({:module, _}, Code.ensure_compiled(ExampleAPIClient))
+    test "should define modules for each path" do
+      assert module_exists?(ExampleAPIClient.Paths)
+      assert module_exists?(ExampleAPIClient.Paths.Root)
+      assert module_exists?(ExampleAPIClient.Paths.Math)
     end
+  end
+
+  defp module_exists?(module) do
+    match?({:module, _}, Code.ensure_compiled(module))
   end
 end
