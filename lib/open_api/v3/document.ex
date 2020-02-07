@@ -24,4 +24,14 @@ defmodule OpenAPI.V3.Document do
         {:error, errors}
     end
   end
+
+  def cast!(document) do
+    case cast(document) do
+      {:ok, document} ->
+        document
+
+      {:error, errors} ->
+        raise "Failed to cast Open API Document. Errors: #{inspect(errors)}"
+    end
+  end
 end
