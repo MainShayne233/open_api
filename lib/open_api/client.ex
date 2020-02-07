@@ -7,7 +7,6 @@ defmodule OpenAPI.Client do
     |> File.read!()
     |> Jason.decode!()
     |> OpenAPI.cast_document!()
-
-    :ok
+    |> OpenAPI.Client.Builder.build_client(__CALLER__.module)
   end
 end
