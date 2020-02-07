@@ -190,7 +190,7 @@ defmodule OpenAPI.ExampleAPITest do
     end
 
     test "should define the client" do
-      assert Code.ensure_compiled?(ExampleAPIClient)
+      assert match?({:module, _}, Code.ensure_compiled(ExampleAPIClient))
     end
   end
 end
