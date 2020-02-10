@@ -194,9 +194,18 @@ defmodule OpenAPI.ExampleAPITest do
       assert module_exists?(ExampleAPIClient.Paths.Root)
       assert module_exists?(ExampleAPIClient.Paths.Math)
     end
+
+    test "path modules should have functions for each defined operation" do
+      assert function_exists?(ExampleAPIClient.Paths.Root, {:get, 0})
+      assert function_exists?(ExampleAPIClient.Paths.Math, {:post, 1})
+    end
   end
 
   defp module_exists?(module) do
     match?({:module, _}, Code.ensure_compiled(module))
+  end
+
+  defp function_exists?(module, {name, arity}) do
+    function_exported?(module, name, arity)
   end
 end

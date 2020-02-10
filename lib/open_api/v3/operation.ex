@@ -28,4 +28,16 @@ defmodule OpenAPI.V3.Operation do
       optional(default :: String.t()) => {:cereal, V3.Response} | {:cereal, V3.Reference}
     })
   end
+
+  @doc false
+  @spec requires_request_body?(breakfast_t()) :: boolean()
+  def requires_request_body?(operation) do
+    case operation do
+      %V3.Operation{parameters: [], request_body: nil} ->
+        false
+
+      %V3.Operation{} ->
+        true
+    end
+  end
 end
