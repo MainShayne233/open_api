@@ -16,7 +16,6 @@ defmodule OpenAPI.V3.Schema do
     field(:nullable, boolean(), default: false)
     field(:discriminator, {:cereal, V3.Discriminator} | nil, default: nil)
     field(:read_only, boolean(), default: false, fetch: {OpenAPI.Util, :camel_key_fetch})
-    field(:read_only, boolean(), default: false, fetch: {OpenAPI.Util, :camel_key_fetch})
     field(:write_only, boolean(), default: false, fetch: {OpenAPI.Util, :camel_key_fetch})
     field(:xml, {:cereal, V3.XML} | nil, default: nil)
 
@@ -26,5 +25,18 @@ defmodule OpenAPI.V3.Schema do
     )
 
     field(:deprecated, boolean(), default: false)
+  end
+
+  def to_cereal(%V3.Schema{type: "object"} = schema) do
+    quote do
+      use Breakfast
+
+      cereal do
+        Enum.each(unquote(Macro.escape(schema.properties)), fn {name, schema} ->
+          # TODO: need to generate the call to the type for the specific property
+          field(String.to_atom(name), any())
+        end)
+      end
+    end
   end
 end

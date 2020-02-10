@@ -41,25 +41,48 @@ defmodule OpenAPI.Client.Builder.V3 do
   end
 
   defp define_operation({operation_type, %V3.Operation{} = operation}, builder) do
-    params =
-      if V3.Operation.requires_request_body?(operation) do
-        quote do
-          [%{} = request_body]
-        end
-      else
-        []
-      end
+    builder = append_to_module_path(builder, [upcase_atom(operation_type)])
+
+    maybe_request_body_schema = maybe_request_body_schema(operation, builder)
 
     quote do
-      @doc """
-      TODO
-      """
-      def unquote(operation_type)(unquote_splicing(params)) do
-        %OpenAPI.HTTP.Request{
-          operation_type: unquote(operation_type),
-          request_body: unquote(Enum.at(params, 0))
-        }
+      defmodule unquote(Module.concat(builder.module_path)) do
+        unquote(maybe_define_request_body_module(maybe_request_body_schema, builder))
       end
+    end
+  end
+
+  defp maybe_define_request_body_module(:none, _builder), do: nil
+
+  defp maybe_define_request_body_module({:ok, %V3.Schema{} = schema}, builder) do
+    builder = append_to_module_path(builder, [RequestBody])
+
+    quote do
+      defmodule unquote(Module.concat(builder.module_path)) do
+        unquote(V3.Schema.to_cereal(schema))
+      end
+    end
+  end
+
+  defp maybe_request_body_schema(operation, builder) do
+    with {:parameters, []} <-
+           {:parameters,
+            Enum.filter(operation.parameters, &match?(%V3.Parameter{in: "path"}, &1))},
+         {:request_body, nil} <- {:request_body, operation.request_body} do
+      :none
+    else
+      {:parameters, _} ->
+        raise "REQUEST BODY FROM PATH PARAMS NOT IMPLEMENTED"
+
+      {:request_body,
+       %V3.RequestBody{
+         content: %{
+           "application/x-www-form-urlencoded" => %OpenAPI.V3.MediaType{
+             schema: %OpenAPI.V3.Schema{} = schema
+           }
+         }
+       }} ->
+        {:ok, schema}
     end
   end
 
@@ -71,6 +94,15 @@ defmodule OpenAPI.Client.Builder.V3 do
     |> Enum.map(fn {{_, opts, mod}, name} ->
       {name, opts, mod}
     end)
+  end
+
+  defp upcase_atom(atom) do
+    upcased =
+      atom
+      |> Atom.to_string()
+      |> String.capitalize()
+
+    :"Elixir.#{upcased}"
   end
 
   defp path_module_path("/") do

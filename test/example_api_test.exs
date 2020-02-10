@@ -195,9 +195,14 @@ defmodule OpenAPI.ExampleAPITest do
       assert module_exists?(ExampleAPIClient.Paths.Math)
     end
 
-    test "path modules should have functions for each defined operation" do
-      assert function_exists?(ExampleAPIClient.Paths.Root, {:get, 0})
-      assert function_exists?(ExampleAPIClient.Paths.Math, {:post, 1})
+    test "should generate modules for each operation of each path" do
+      assert module_exists?(ExampleAPIClient.Paths.Root.Get)
+      assert module_exists?(ExampleAPIClient.Paths.Math.Post)
+    end
+
+    test "should generate modules for each operation's request body if needed" do
+      refute module_exists?(ExampleAPIClient.Paths.Root.Get.RequestBody)
+      assert module_exists?(ExampleAPIClient.Paths.Math.Post.RequestBody)
     end
   end
 
