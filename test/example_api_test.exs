@@ -195,14 +195,31 @@ defmodule OpenAPI.ExampleAPITest do
       assert module_exists?(ExampleAPIClient.Paths.Math)
     end
 
-    test "should generate modules for each operation of each path" do
+    test "should define modules for each operation of each path" do
       assert module_exists?(ExampleAPIClient.Paths.Root.Get)
       assert module_exists?(ExampleAPIClient.Paths.Math.Post)
     end
 
-    test "should generate modules for each operation's request body if needed" do
+    test "should define the appropriate functions within the operation module" do
+      assert function_exists?(ExampleAPIClient.Paths.Root.Get, {:new_request, 2})
+      assert function_exists?(ExampleAPIClient.Paths.Math.Post, {:new_request, 2})
+
+      assert function_exists?(ExampleAPIClient.Paths.Root.Get, {:make_request, 1})
+      assert function_exists?(ExampleAPIClient.Paths.Math.Post, {:make_request, 1})
+    end
+
+    test "should define modules for each operation's request body if needed" do
       refute module_exists?(ExampleAPIClient.Paths.Root.Get.RequestBody)
       assert module_exists?(ExampleAPIClient.Paths.Math.Post.RequestBody)
+    end
+
+    test "should define the appropriate functions within the request body module" do
+      assert function_exists?(ExampleAPIClient.Paths.Math.Post.RequestBody, {:new, 1})
+    end
+
+    test "should define the a module per response for the operation" do
+      assert module_exists?(ExampleAPIClient.Paths.Root.Get.Responses.StatusCode200)
+      assert module_exists?(ExampleAPIClient.Paths.Math.Post.Responses.StatusCode200)
     end
   end
 
